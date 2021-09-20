@@ -2,6 +2,7 @@ import requests
 import os
 import json
 from utils import constants
+import logging
 
 bearer_token = constants.bearer_token
 search_url = "https://api.twitter.com/2/tweets/search/recent"
@@ -31,7 +32,7 @@ def connect_to_endpoint(url, params):
     response = requests.get(url,
                             headers=headersDic,
                             params=params)
-    print(response.status_code)
+    logging.debug(response.status_code)
     if response.status_code != 200:
         raise Exception(response.status_code, response.text)
     return response.json()
@@ -39,5 +40,5 @@ def connect_to_endpoint(url, params):
 
 def get(query_tuple_list=[]):
     json_response = connect_to_endpoint(search_url, query_tuple_list)
-    # print(json.dumps(json_response, indent=4, sort_keys=True))
+    # logging.debug(json.dumps(json_response, indent=4, sort_keys=True))
     return json_response
