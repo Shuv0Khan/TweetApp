@@ -1,6 +1,8 @@
-import time
-import tweepy
 import logging
+import time
+
+import tweepy
+
 
 class Interface:
     def __init__(self, api_key, secret_key, bearer_token):

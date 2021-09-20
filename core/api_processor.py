@@ -1,11 +1,11 @@
-from core import mongodb_processor
-from utils import constants
-from twitterdev import recent_search
-import json
 import copy
+import logging
 import time
 import traceback
-import logging
+
+from core import mongodb_processor
+from twitterdev import recent_search
+from utils import constants
 
 
 class ApiProcessor:
@@ -62,5 +62,5 @@ class ApiProcessor:
 
     def save(self, collection, json_response):
         self.mongo.save(collection, json_response)
-        # logging.debug(f"Saving to collection - {collection}")
-        # logging.debug(json_response)
+        logging.debug(f"Saving to collection - {collection}")
+        logging.debug(json_response)
