@@ -1,5 +1,6 @@
 import time
 import tweepy
+import logging
 
 class Interface:
     def __init__(self, api_key, secret_key, bearer_token):
@@ -13,7 +14,7 @@ class Interface:
             global api
             api = tweepy.API(auth)
         except:
-            print("Something went wrong at authentication")
+            logging.debug("Something went wrong at authentication")
 
     def limit_handled(self, cursor):
         while True:
@@ -24,7 +25,7 @@ class Interface:
         '''
             for follower in limit_handled(tweepy.Cursor(api.followers).items()):
                 if follower.friends_count < 300:
-                    print(follower.screen_name)
+                    logging.debug(follower.screen_name)
         '''
 
     def create_tweepy_client(self):

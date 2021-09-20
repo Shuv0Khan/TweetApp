@@ -5,6 +5,7 @@ import json
 import copy
 import time
 import traceback
+import logging
 
 
 class ApiProcessor:
@@ -19,7 +20,7 @@ class ApiProcessor:
                         "query": constants.construct_query_str()}
 
         if len(query_params["query"]) > 512:
-            print("Invalid query. Length greater than 512")
+            logging.debug("Invalid query. Length greater than 512")
             return ""
 
         json_data = copy.deepcopy(query_params)
@@ -27,7 +28,7 @@ class ApiProcessor:
         collection_name = json_data["collection_start"]
         self.save(f"query_{collection_name}", json_data)
 
-        print(json_data)
+        logging.debug(json_data)
 
         query_tuple_list = []
         for f, v in query_params.items():
@@ -42,12 +43,12 @@ class ApiProcessor:
             try:
                 json_response = recent_search.get(query_tuple_list=query_tuple_list)
             except Exception as e:
-                traceback.print_exc()
+                traceback.logging.debug_exc()
                 code, msg = e.args
                 if code == 429:
-                    print(f"Going to sleep at - {time.ctime()}")
+                    logging.debug(f"Going to sleep at - {time.ctime()}")
                     time.sleep(15 * 60)
-                    print(f"Awake at - {time.ctime()}")
+                    logging.debug(f"Awake at - {time.ctime()}")
                     continue
                 else:
                     exit(0)
@@ -61,5 +62,5 @@ class ApiProcessor:
 
     def save(self, collection, json_response):
         self.mongo.save(collection, json_response)
-        # print(f"Saving to collection - {collection}")
-        # print(json_response)
+        # logging.debug(f"Saving to collection - {collection}")
+        # logging.debug(json_response)
