@@ -12,9 +12,13 @@ def main():
     logging.debug("Starting Application...")
     logging.debug("Will be working with:")
     logging.debug("positive_hashtag = {}".format(constants.positive_hashtags))
+    logging.debug(f"positive hash - {len(constants.positive_hashtags)}")
     logging.debug("negative_hashtag = {}".format(constants.negative_hashtags))
+    logging.debug(f"negative hash - {len(constants.negative_hashtags)}")
     logging.debug("positive_keywords = {}".format(constants.positive_keywords))
+    logging.debug(f"positive key- {len(constants.positive_keywords)}")
     logging.debug("negative_keywords = {}".format(constants.negative_keywords))
+    logging.debug(f"negative key - {len(constants.negative_keywords)}")
 
     apiProcessor = api_processor.ApiProcessor()
     apiProcessor.start_twitterdev()

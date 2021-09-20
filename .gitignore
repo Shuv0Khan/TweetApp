@@ -1,3 +1,5 @@
 .idea/
 vnev/
 *.log
+core/__pycache__/
+twitterdev/__pycache__/
