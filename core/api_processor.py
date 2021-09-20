@@ -15,9 +15,15 @@ class ApiProcessor:
         pass
 
     def start_twitterdev(self):
+        try:
+            query_str = constants.construct_query_str()
+        except ValueError:
+            traceback.print_exc()
+            return ""
+
         query_params = {"tweet.fields": constants.construct_tweet_fields_str(),
                         "max_results": 100,
-                        "query": constants.construct_query_str()}
+                        "query": query_str}
 
         if len(query_params["query"]) > 512:
             logging.debug("Invalid query. Length greater than 512")
@@ -43,7 +49,7 @@ class ApiProcessor:
             try:
                 json_response = recent_search.get(query_tuple_list=query_tuple_list)
             except Exception as e:
-                traceback.logging.debug_exc()
+                traceback.print_exc()
                 code, msg = e.args
                 if code == 429:
                     logging.debug(f"Going to sleep at - {time.ctime()}")
@@ -60,7 +66,10 @@ class ApiProcessor:
             else:
                 break
 
+        self.start_twitterdev()
+
+
     def save(self, collection, json_response):
         self.mongo.save(collection, json_response)
         logging.debug(f"Saving to collection - {collection}")
-        logging.debug(json_response)
+        # logging.debug(json_response)
