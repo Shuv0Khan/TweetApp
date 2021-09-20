@@ -1,8 +1,8 @@
-import requests
-import os
-import json
-from utils import constants
 import logging
+
+import requests
+
+from utils import constants
 
 bearer_token = constants.bearer_token
 search_url = "https://api.twitter.com/2/tweets/search/recent"

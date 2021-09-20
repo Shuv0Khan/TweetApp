@@ -1,10 +1,7 @@
-import json
-from utils import constants
-import tweepy
-import tweepy_interface
-from twitterdev import recent_search
-from core import api_processor
 import logging
+
+from core import api_processor
+from utils import constants
 
 
 def main():
