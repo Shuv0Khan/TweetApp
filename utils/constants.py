@@ -25,7 +25,9 @@ negative_keywords = ['"homos must die"']
 all_tags = []
 query_tag_index = 0
 
+expansions = ["author_id", "entities.mentions.username", "geo.place_id", "in_reply_to_user_id"]
 tweet_fields = ["id", "text", "author_id", "conversation_id", "created_at", "geo", "public_metrics"]
+place_fields = ["id", "full_name", "country", "geo", "place_type"]
 
 mongodb_url = "mongodb://localhost:27017/"
 mongodb_db_name = "TwitterData"
@@ -71,6 +73,16 @@ def construct_query_str(allow_retweet=False, only_en=True):
     return query
 
 
+def construct_expansion_str():
+    expansions_str = ""
+    comma = ""
+    for field in expansions:
+        expansions_str += comma + field
+        comma = ","
+
+    return expansions_str
+
+
 def construct_tweet_fields_str():
     tweet_fields_str = ""
     comma = ""
@@ -79,3 +91,25 @@ def construct_tweet_fields_str():
         comma = ","
 
     return tweet_fields_str
+
+
+def construct_place_fields_str():
+    place_fields_str = ""
+    comma = ""
+    for field in place_fields:
+        place_fields_str += comma + field
+        comma = ","
+
+    return place_fields_str
+
+
+def construct_query_param():
+    query_params = {
+        "query": construct_query_str(),
+        "expansions": construct_expansion_str(),
+        "tweet.fields": construct_tweet_fields_str(),
+        "place.fields": construct_place_fields_str(),
+        "max_results": 100
+    }
+
+    return query_params
