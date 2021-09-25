@@ -16,14 +16,10 @@ class ApiProcessor:
 
     def start_twitterdev(self):
         try:
-            query_str = constants.construct_query_str()
+            query_params = constants.construct_query_param()
         except ValueError:
             traceback.print_exc()
             return ""
-
-        query_params = {"tweet.fields": constants.construct_tweet_fields_str(),
-                        "max_results": 100,
-                        "query": query_str}
 
         if len(query_params["query"]) > 512:
             logging.debug("Invalid query. Length greater than 512")
@@ -65,7 +61,7 @@ class ApiProcessor:
                 collection_name = self.next_token
             else:
                 break
-
+            
         self.start_twitterdev()
 
 
