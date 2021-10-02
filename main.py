@@ -1,7 +1,8 @@
 import logging
 
+from twitterdev import search_tweet_interface
 from core import api_processor
-from utils import constants
+from utils import constants, dbparser
 
 
 def main():
@@ -20,9 +21,13 @@ def main():
     logging.debug("negative_keywords = {}".format(constants.negative_keywords))
     logging.debug(f"negative key - {len(constants.negative_keywords)}")
 
-    apiProcessor = api_processor.ApiProcessor()
-    apiProcessor.start_twitterdev()
+    # apiProcessor = api_processor.ApiProcessor()
+    # apiProcessor.start_twitterdev()
 
+    # fullArchiveSearch = search_tweet_interface.FullArchiveSearch()
+    # fullArchiveSearch.do_get()
+
+    dbparser.getAllTweets()
 
 if __name__ == '__main__':
     main()

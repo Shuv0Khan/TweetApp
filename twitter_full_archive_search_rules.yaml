@@ -1,0 +1,8 @@
+search_rules:
+    start_time: 2021-09-27
+    end_time: 2021-09-26
+    query: (snow OR rain) has:media -is:retweet
+
+search_params:
+    results_per_call: 10
+    max_results: 10
