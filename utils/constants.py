@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+from searchtweets import convert_utc_time
+
 api_key = "HxLdOc22bqKmoo65Gd6zpZFbM"
 secret_key = "bN8NQdPvL1lw3aj3FwaxFDKDaLLKxwDx6O8bJ9XzR9itl9RAZN"
 bearer_token = "AAAAAAAAAAAAAAAAAAAAAA30TgEAAAAAdtqd1KsuXVp%2F%2BPMWDp0ju%2BiDXxc%3DyBFbdev3Kc505uj7EYSaaUQkH6m4uDcoy1jtjHqHaZLlI34DNP"
@@ -25,15 +28,21 @@ negative_keywords = ['"homos must die"']
 all_tags = []
 query_tag_index = 0
 
-expansions = ["author_id", "entities.mentions.username", "geo.place_id", "in_reply_to_user_id"]
-tweet_fields = ["id", "text", "author_id", "conversation_id", "created_at", "geo", "public_metrics"]
+expansions = ["author_id", "entities.mentions.username", "geo.place_id", "in_reply_to_user_id",
+              "referenced_tweets.id", "referenced_tweets.id.author_id"]
+tweet_fields = ["id", "text", "author_id", "conversation_id", "created_at", "geo", "in_reply_to_user_id",
+                "public_metrics", "entities", "possibly_sensitive", "referenced_tweets"]
+user_fields = ["created_at", "id", "location", "name", "pinned_tweet_id", "protected", "url", "username", "verified"]
 place_fields = ["id", "full_name", "country", "geo", "place_type"]
+query_length = 512
+max_results = 500
 
 mongodb_url = "mongodb://localhost:27017/"
-mongodb_db_name = "TwitterData"
+mongodb_db_name = "TwitterDataFullArchive"
 
 
 def construct_query_str(allow_retweet=False, only_en=True):
+    global query_length
     global query_tag_index
     global all_tags
     if len(all_tags) == 0:
@@ -50,19 +59,19 @@ def construct_query_str(allow_retweet=False, only_en=True):
         query += " lang:en"
 
     query = str.strip(query) + " ("
-    query_length = len(query)
+    q_len = len(query)
     _or = ""
 
     if query_tag_index < len(all_tags):
         for i in range(query_tag_index, len(all_tags)):
             hashtag = all_tags[i]
 
-            if query_length + 4 + len(hashtag) >= 512:
+            if q_len + 4 + len(hashtag) >= query_length:
                 break
 
             query += _or + hashtag
             query_tag_index += 1
-            query_length += 4 + len(hashtag)
+            q_len += 4 + len(hashtag)
             _or = " OR "
 
     else:
@@ -73,43 +82,48 @@ def construct_query_str(allow_retweet=False, only_en=True):
     return query
 
 
-def construct_expansion_str():
-    expansions_str = ""
+def construct_csv_str(items=[]):
+    csv_str = ""
     comma = ""
-    for field in expansions:
-        expansions_str += comma + field
+    for item in items:
+        csv_str += comma + item
         comma = ","
 
-    return expansions_str
+    return csv_str
+
+
+def construct_expansion_str():
+    return construct_csv_str(expansions)
 
 
 def construct_tweet_fields_str():
-    tweet_fields_str = ""
-    comma = ""
-    for field in tweet_fields:
-        tweet_fields_str += comma + field
-        comma = ","
+    return construct_csv_str(tweet_fields)
 
-    return tweet_fields_str
+
+def construct_user_fields_str():
+    return construct_csv_str(user_fields)
 
 
 def construct_place_fields_str():
-    place_fields_str = ""
-    comma = ""
-    for field in place_fields:
-        place_fields_str += comma + field
-        comma = ","
-
-    return place_fields_str
+    return construct_csv_str(place_fields)
 
 
-def construct_query_param():
+def reset_query_index():
+    global query_tag_index
+    query_tag_index = 0
+
+
+def construct_query_param(start_time=date.fromisoformat("2008-01-01"), inc=timedelta(days=1)):
+    end_time = start_time + inc
+
     query_params = {
         "query": construct_query_str(),
         "expansions": construct_expansion_str(),
         "tweet.fields": construct_tweet_fields_str(),
+        "user.fields": construct_user_fields_str(),
         "place.fields": construct_place_fields_str(),
-        "max_results": 100
+        "max_results": max_results,
+        "start_time": convert_utc_time(start_time.isoformat()),
+        "end_time": convert_utc_time(end_time.isoformat())
     }
-
     return query_params
