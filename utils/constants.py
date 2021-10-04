@@ -5,35 +5,68 @@ api_key = "HxLdOc22bqKmoo65Gd6zpZFbM"
 secret_key = "bN8NQdPvL1lw3aj3FwaxFDKDaLLKxwDx6O8bJ9XzR9itl9RAZN"
 bearer_token = "AAAAAAAAAAAAAAAAAAAAAA30TgEAAAAAdtqd1KsuXVp%2F%2BPMWDp0ju%2BiDXxc%3DyBFbdev3Kc505uj7EYSaaUQkH6m4uDcoy1jtjHqHaZLlI34DNP"
 
-positive_hashtags = ["#ally", "#pride", "#lgbtq", "#lgbt", "#socialjustice",
-                     "#gay", "#loveislove", "#queer", "#lesbian", "#pridemonth",
-                     "#equality", "#h", "#allyship", "#bisexual", "#Transgender",
-                     "#LGBTQ", "#PrideMonth", "#PrideMonth2021", "#Pride2021", "#HearQueerYouth",
-                     "#pronouns", "#AltogetherDifferent", "#LGBTQIA", "#lgbtq", "#lgbt",
-                     "#gay", "#pride", "#loveislove", "#lesbian", "#queer",
-                     "#bisexual", "#transgender", "#instagay", "#trans", "#gaypride",
-                     "#gayboy", "#lgbtqia", "#pridemonth", "#lgbtpride", "#nonbinary",
-                     "#bi", "#dragqueen", "#pansexual", "#gayman", "#genderfluid",
-                     "#gaylove", "#asexual", "#lgbtcommunity", "#pansexual", "#bisexual",
-                     "#transexual", "#transsexual", "#transman", "#MeQueer"]
+positive_hashtags = [
+    "#ally", "#pride", "#lgbtq", "#lgbt", "#socialjustice", "#gay", "#queer", "#lesbian", "#pridemonth",
+    "#equality", "#allyship", "#bisexual", "#Transgender","#LGBTQ", "#PrideMonth", "#PrideMonth2021",
+    "#Pride2021", "#HearQueerYouth", "#pronouns", "#AltogetherDifferent", "#LGBTQIA", "#lgbtq", "#lgbt",
+    "#gay", "#pride", "#loveislove", "#lesbian", "#queer", "#bisexual", "#transgender", "#instagay",
+    "#trans", "#gaypride", "#gayboy", "#lgbtqia", "#pridemonth", "#lgbtpride", "#nonbinary", "#dragqueen",
+    "#pansexual", "#gayman", "#genderfluid", "#gaylove", "#asexual", "#lgbtcommunity", "#pansexual", "#bisexual",
+    "#transexual", "#transsexual", "#transman", "#MeQueer",
 
-negative_hashtags = ["#antigay", "#antilgbt", "#antilgbtq", "#homophobeandproud", "#HomosDNI",
-                     "#homophobic", "#SignsYoSonIsGay", "#Gays must die", "#Transphobia", "#TeamHomophobes"]
+    # 2010-01-01 manual tweet parsing
+    # removed -
+    # "#bi", "#h", "#loveislove",
+    # added -
+    "#canqueer", "#gayandlesbian", "#gayfestivals", "#knowyourgayfestivals","#queerunity", "#yaygay",
+    "#yaylesbian", "#yayhomo", "#glbt", "#gayrights"
+]
+
+negative_hashtags = [
+    "#antigay", "#antilgbt", "#antilgbtq", "#homophobeandproud", "#HomosDNI","#homophobic", "#SignsYoSonIsGay",
+    "#Gays must die", "#Transphobia", "#TeamHomophobes"
+]
 
 # double quotation is used to search with full phrase
-positive_keywords = ['"Pride month"', '"gay pride"', '"trans pride"']
+positive_keywords = [
+    '"Pride month"', '"gay pride"', '"trans pride"',
 
-negative_keywords = ['"homos must die"']
+    # 2010-01-01 manual tweet parsing
+    # added -
+    '"pro-gay"', '"gay conversion"',
+]
+
+negative_keywords = [
+    '"homos must die"'
+]
+
+excluded_keywords = [
+    # 2010-01-01 manual tweet parsing
+    # added -
+    "#porn", "#fuck", "#nsfw", "#gayporn", "#cam", "#webcam", "#xxx", "#porno"
+]
 
 all_tags = []
 query_tag_index = 0
 
-expansions = ["author_id", "entities.mentions.username", "geo.place_id", "in_reply_to_user_id",
-              "referenced_tweets.id", "referenced_tweets.id.author_id"]
-tweet_fields = ["id", "text", "author_id", "conversation_id", "created_at", "geo", "in_reply_to_user_id",
-                "public_metrics", "entities", "possibly_sensitive", "referenced_tweets"]
-user_fields = ["created_at", "id", "location", "name", "pinned_tweet_id", "protected", "url", "username", "verified"]
-place_fields = ["id", "full_name", "country", "geo", "place_type"]
+expansions = [
+    "author_id", "entities.mentions.username", "geo.place_id", "in_reply_to_user_id","referenced_tweets.id",
+    "referenced_tweets.id.author_id"
+]
+
+tweet_fields = [
+    "id", "text", "author_id", "conversation_id", "created_at", "geo", "in_reply_to_user_id","public_metrics",
+    "entities", "possibly_sensitive", "referenced_tweets"
+]
+
+user_fields = [
+    "created_at", "id", "location", "name", "pinned_tweet_id", "protected", "url", "username", "verified"
+]
+
+place_fields = [
+    "id", "full_name", "country", "geo", "place_type"
+]
+
 query_length = 512
 max_results = 500
 
@@ -58,8 +91,12 @@ def construct_query_str(allow_retweet=False, only_en=True):
     if only_en:
         query += " lang:en"
 
+    if len(excluded_keywords) > 0:
+        for word in excluded_keywords:
+            query += " -" + word
+
     query = str.strip(query) + " ("
-    q_len = len(query)
+    q_len = len(query) + 1  # for closing bracket
     _or = ""
 
     if query_tag_index < len(all_tags):
