@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 from twitterdev import search_tweet_interface
@@ -24,10 +25,11 @@ def main():
     # apiProcessor = api_processor.ApiProcessor()
     # apiProcessor.start_twitterdev()
 
-    # fullArchiveSearch = search_tweet_interface.FullArchiveSearch()
-    # fullArchiveSearch.do_get()
+    full_archive_search = search_tweet_interface.FullArchiveSearch()
+    # full_archive_search.do_get()
+    full_archive_search.do_count()
 
-    dbparser.getAllTweets()
+    # dbparser.get_all_tweets()
 
 if __name__ == '__main__':
     main()
