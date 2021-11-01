@@ -33,7 +33,7 @@ class FullArchiveSearch:
 
                 logging.debug(f"query={query_dict}")
 
-                rs = ResultStream(rule_payload=query_dict,
+                rs = ResultStream(request_parameters=query_dict,
                                   max_results=query_dict["max_results"],
                                   max_pages=1,
                                   **self.search_args)
@@ -50,8 +50,9 @@ class FullArchiveSearch:
                     tweets = list(rs.stream())
                     for page in tweets:
                         self.mongo.save(collection=collection_name, json_data=page)
-                except:
+                except Exception as e:
                     traceback.print_stack()
+                    logging.error(e)
 
             constants.reset_query_index()
             start_time = start_time + inc
