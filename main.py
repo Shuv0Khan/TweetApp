@@ -26,8 +26,8 @@ def main():
     # apiProcessor.start_twitterdev()
 
     full_archive_search = search_tweet_interface.FullArchiveSearch()
-    # full_archive_search.do_get()
-    full_archive_search.do_count()
+    full_archive_search.do_get()
+    # full_archive_search.do_count()
 
     # dbparser.get_all_tweets()
 
