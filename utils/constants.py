@@ -19,12 +19,24 @@ positive_hashtags = [
     # "#bi", "#h", "#loveislove",
     # added -
     "#canqueer", "#gayandlesbian", "#gayfestivals", "#knowyourgayfestivals","#queerunity", "#yaygay",
-    "#yaylesbian", "#yayhomo", "#glbt", "#gayrights"
+    "#yaylesbian", "#yayhomo", "#glbt", "#gayrights",
+
+    # 2021-10-11
+    # added -
+    "#Intersex", "#intersexpride",
+
+    # 2021-10-28
+    # added -
+    "#WorldPride", "#LGBTQIAPlus", "#LGBTI",
 ]
 
 negative_hashtags = [
     "#antigay", "#antilgbt", "#antilgbtq", "#homophobeandproud", "#HomosDNI","#homophobic", "#SignsYoSonIsGay",
-    "#Gays must die", "#Transphobia", "#TeamHomophobes"
+    "#Gays must die", "#Transphobia", "#TeamHomophobes",
+
+    # 2021-10-11
+    # added -
+    "#Biphobia"
 ]
 
 # double quotation is used to search with full phrase

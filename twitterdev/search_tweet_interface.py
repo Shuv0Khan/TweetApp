@@ -17,8 +17,8 @@ class FullArchiveSearch:
                                             env_overwrite=False)
 
     def do_get(self):
-        start_time = date.fromisoformat("2010-01-01")
-        end_time = date.fromisoformat("2010-01-02")
+        start_time = date.fromisoformat("2006-04-01")
+        end_time = date.fromisoformat("2020-12-31")
         inc = timedelta(days=1)
 
         while start_time < end_time:
