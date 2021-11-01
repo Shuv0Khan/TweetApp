@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, date, timedelta
 from core import mongodb_processor
 
-from searchtweets import ResultStream, gen_request_parameters, load_credentials, collect_results, convert_utc_time
+from searchtweets import ResultStream, load_credentials, collect_results, convert_utc_time
 from utils import constants
 import logging
 import traceback
@@ -15,6 +15,7 @@ class FullArchiveSearch:
         self.search_args = load_credentials("twitter_api_keys.yaml",
                                             yaml_key="search_tweets_v2",
                                             env_overwrite=False)
+        print(f"search args = {self.search_args}")
 
     def do_get(self):
         start_time = date.fromisoformat("2006-04-01")
@@ -32,20 +33,20 @@ class FullArchiveSearch:
 
                 logging.debug(f"query={query_dict}")
 
-                rs = ResultStream(request_parameters=query_dict,
+                rs = ResultStream(rule_payload=query_dict,
                                   max_results=query_dict["max_results"],
                                   max_pages=1,
                                   **self.search_args)
 
                 logging.debug(f"ResultStream={rs}")
 
-                # tweets = collect_results(query,
-                #                          max_tweets=10,
-                #                          result_stream_args=self.search_args)  # change this if you need to
-                #
-                # logging.debug(f"tweets={json.dumps(tweets)}")
-
                 try:
+                    # tweets = collect_results(query_dict,
+                    #                          max_tweets=10,
+                    #                          result_stream_args=self.search_args)  # change this if you need to
+                    #
+                    # logging.debug(f"tweets={json.dumps(tweets)}")
+
                     tweets = list(rs.stream())
                     for page in tweets:
                         self.mongo.save(collection=collection_name, json_data=page)
