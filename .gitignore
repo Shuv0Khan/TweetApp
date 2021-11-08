@@ -3,3 +3,4 @@ vnev/
 *.log
 core/__pycache__/
 twitterdev/__pycache__/
+Scweet/__pycache__/
