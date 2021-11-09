@@ -61,9 +61,63 @@ class ApiProcessor:
                 collection_name = self.next_token
             else:
                 break
-            
+
         self.start_twitterdev()
 
+    def get_users(self):
+        url = 'https://api.twitter.com/2/users'
+        collection_name = 'users_info'
+
+        file = open('UniqueUsers.log')
+        lines = file.readlines()
+        file.close()
+
+        user_ids = []
+        for line in lines:
+            user_ids.append(line.strip())
+
+        query_tuple_list = [('user.fields', 'created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld'),
+                            ('expansions', 'pinned_tweet_id'),
+                            ('tweet.fields', 'attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld'),
+                            ('ids', '')]
+
+        id_index = 0
+        while id_index < len(user_ids):
+            ids = str(user_ids[id_index])
+            id_index += 1
+            for id in user_ids[id_index:id_index+99:1]:
+                ids += ','+id
+            id_index += 99
+
+            query_tuple_list.pop()
+            query_tuple_list.append(('ids', ids))
+
+            while True:
+                if len(self.next_token) != 0:
+                    if len(query_tuple_list) > 4:
+                        query_tuple_list.pop()
+                    query_tuple_list.append(('next_token', self.next_token))
+
+                try:
+                    json_response = recent_search.connect_to_endpoint(url, query_tuple_list)
+                    logging.debug(f"collected id index from {id_index-100} to {id_index}")
+                except Exception as e:
+                    traceback.print_exc()
+                    code, msg = e.args
+                    if code == 429:
+                        logging.debug(f"Going to sleep at - {time.ctime()}")
+                        time.sleep(5 * 60)
+                        logging.debug(f"Awake at - {time.ctime()}")
+                        continue
+                    else:
+                        exit(0)
+
+                self.save(collection_name, json_response)
+
+                if "meta" in json_response and "next_token" in json_response["meta"]:
+                    self.next_token = json_response["meta"]["next_token"]
+                else:
+                    break
 
     def save(self, collection, json_response):
         self.mongo.save(collection, json_response)
