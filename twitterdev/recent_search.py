@@ -11,9 +11,8 @@ search_url = "https://api.twitter.com/2/tweets/search/recent"
 # expansions,tweet.fields,media.fields,poll.fields,place.fields,user.fields
 
 headersDic = {
-    'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAA30TgEAAAAAdtqd1KsuXVp%2F%2BPMWDp0ju%2BiDXxc%3DyBFbdev3Kc505uj7EYSaaUQkH6m4uDcoy1jtjHqHaZLlI34DNP',
-    'User-Agent': 'v2RecentSearchPython',
-    'Cookie': 'guest_id=v1%3A163211856965853325; personalization_id="v1_gM2oFiFL2Mnbu8aglueTDA=="'
+    'Authorization': f'Bearer {constants.bearer_token}',
+    'User-Agent': 'v2UserLookupPython'
 }
 
 
@@ -38,7 +37,7 @@ def connect_to_endpoint(url, params):
     return response.json()
 
 
-def get(query_tuple_list=[]):
-    json_response = connect_to_endpoint(search_url, query_tuple_list)
+def get(url=search_url, query_tuple_list=[]):
+    json_response = connect_to_endpoint(url, query_tuple_list)
     # logging.debug(json.dumps(json_response, indent=4, sort_keys=True))
     return json_response

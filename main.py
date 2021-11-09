@@ -1,9 +1,7 @@
-import datetime
 import logging
 
-from twitterdev import search_tweet_interface
-from core import api_processor
-from utils import constants, dbparser
+from twitterdev import api_processor
+from utils import constants
 
 
 def main():
@@ -22,11 +20,12 @@ def main():
     logging.debug("negative_keywords = {}".format(constants.negative_keywords))
     logging.debug(f"negative key - {len(constants.negative_keywords)}")
 
-    # apiProcessor = api_processor.ApiProcessor()
+    apiProcessor = api_processor.ApiProcessor()
+    apiProcessor.get_users()
     # apiProcessor.start_twitterdev()
 
-    full_archive_search = search_tweet_interface.FullArchiveSearch()
-    full_archive_search.do_get()
+    # full_archive_search = search_tweet_interface.FullArchiveSearch()
+    # full_archive_search.do_get()
     # full_archive_search.do_count()
 
     # dbparser.get_all_tweets()

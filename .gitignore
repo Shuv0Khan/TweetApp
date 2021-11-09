@@ -2,5 +2,8 @@
 vnev/
 *.log
 core/__pycache__/
-twitterdev/__pycache__/
+scraping/__pycache__/
 Scweet/__pycache__/
+tweepy_interface/__pycache__/
+twitterdev/__pycache__/
+utils/__pycache__/
