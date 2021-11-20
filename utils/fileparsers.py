@@ -50,7 +50,7 @@ def parse_counts_log():
 def filter_unwanted_users():
     with open("C:\\Users\\shuvo\\OneDrive\\Studies\\MSc\\GA\\Works\\users.csv", mode="r", encoding="utf8") as f1, open(
             "C:\\Users\\shuvo\\OneDrive\\Studies\\MSc\\GA\\Works\\Unique Users.log", mode="r",
-            encoding="utf8") as f2, open("followers.csv", "w") as oup:
+            encoding="utf8") as f2, open("uusers.csv", "w") as oup:
         lines = f2.readlines()
         users = {}
         for line in lines:
@@ -59,16 +59,16 @@ def filter_unwanted_users():
         lines = f1.readlines()
         i = 0
         for line in lines:
-            parts = line.split(",")
+            parts = line.strip().split(",")
             if parts[0] in users:
-                oup.write(f"{parts[0]},{parts[-4]}\n")
+                oup.write(f"{line.strip()}\n")
                 i += 1
 
         print(f"users = {i}")
 
 
 def user_info_parser():
-    with open("C:\\Users\\shuvo\\OneDrive\\Studies\\MSc\\GA\\Works\\users.csv", mode="r", encoding="utf8") as inp, open(
+    with open("uusers.csv", mode="r", encoding="utf8") as inp, open(
             "followers.csv", mode="w", encoding="utf8") as out_followers, open(
             "following.csv", mode="w", encoding="utf8") as out_following, open(
             "tweets_count.csv", mode="w", encoding="utf8") as out_tweets:
@@ -81,11 +81,11 @@ def user_info_parser():
             if "id" in line:
                 continue
             try:
-                parts = line.split(",")
+                parts = line.strip().split(",")
 
-                out_followers.write(f"{i},{parts[0]},{int(parts[-4])}\n")
-                out_following.write(f"{i},{parts[0]},{int(parts[-3])}\n")
-                out_tweets.write(f"{i},{parts[0]},{int(parts[-2])}\n")
+                out_followers.write(f"{i},{parts[0]},{int(parts[1])}\n")
+                out_following.write(f"{i},{parts[0]},{int(parts[2])}\n")
+                out_tweets.write(f"{i},{parts[0]},{int(parts[3])}\n")
 
                 i += 1
 
@@ -115,11 +115,22 @@ def data_plotter(filepath, column):
         d_points = []
 
         for line in lines:
-            parts = line.split(",")
+            parts = line.strip().split(",")
             d_points.append(int(parts[column]))
+
+        d_points.sort()
+        print(f"Max = {d_points[len(d_points) - 1]}")
+        # x_points = [i for i in range(1, len(d_points) + 1)]
+        # plt.plot(x_points, d_points)
+        # plt.show()
+        # return
 
         y_points = [i for i in d_points if 10000 > i > 0]
         y_points.sort()
+        # x_points = [i for i in range(1, len(y_points) + 1)]
+        # plt.plot(x_points, y_points)
+        # plt.show()
+        # return
 
         # min-max normalization
         # y_min = y_points[0]
@@ -162,9 +173,9 @@ def data_plotter(filepath, column):
 
 def main():
     # parse_counts_log()
-    user_info_parser()
     # filter_unwanted_users()
-    # data_plotter("followers.csv", 1)
+    # user_info_parser()
+    data_plotter("tweets_count.csv", 2)
 
 
 if __name__ == '__main__':
