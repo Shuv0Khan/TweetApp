@@ -1,8 +1,6 @@
-
-
-
-
-
+from math import ceil, floor
+from pylab import *
+import matplotlib.pyplot as plt
 
 
 def parse_counts_log():
@@ -49,15 +47,124 @@ def parse_counts_log():
         print(f"{key},{yearly_dict[key]}")
 
 
+def filter_unwanted_users():
+    with open("C:\\Users\\shuvo\\OneDrive\\Studies\\MSc\\GA\\Works\\users.csv", mode="r", encoding="utf8") as f1, open(
+            "C:\\Users\\shuvo\\OneDrive\\Studies\\MSc\\GA\\Works\\Unique Users.log", mode="r",
+            encoding="utf8") as f2, open("followers.csv", "w") as oup:
+        lines = f2.readlines()
+        users = {}
+        for line in lines:
+            users[line.strip()] = 1
+
+        lines = f1.readlines()
+        i = 0
+        for line in lines:
+            parts = line.split(",")
+            if parts[0] in users:
+                oup.write(f"{parts[0]},{parts[-4]}\n")
+                i += 1
+
+        print(f"users = {i}")
 
 
+def user_info_parser():
+    with open("C:\\Users\\shuvo\\OneDrive\\Studies\\MSc\\GA\\Works\\users.csv", mode="r", encoding="utf8") as inp, open(
+            "followers.csv", mode="w", encoding="utf8") as out_followers, open(
+            "following.csv", mode="w", encoding="utf8") as out_following, open(
+            "tweets_count.csv", mode="w", encoding="utf8") as out_tweets:
+
+        lines = inp.readlines()
+        counts = []
+        maxim = -1
+        i = 1
+        for line in lines:
+            if "id" in line:
+                continue
+            try:
+                parts = line.split(",")
+
+                out_followers.write(f"{i},{parts[0]},{int(parts[-4])}\n")
+                out_following.write(f"{i},{parts[0]},{int(parts[-3])}\n")
+                out_tweets.write(f"{i},{parts[0]},{int(parts[-2])}\n")
+
+                i += 1
+
+                # counts.append(followers)
+                # if followers > maxim:
+                #     maxim = followers
+
+            except Exception as e:
+                print(line)
+                raise e
+
+        # print(f"max = {maxim}")
+        # distribution = [0] * (int(maxim / 10000) + 1)
+        # print(f"total data points {len(distribution)}")
+
+        # for c in counts:
+        #     index = int(c / 10000)
+        #     distribution[index] += 1
+
+        # for i in range(len(distribution)):
+        #     out_followers.write(f"{i + 1},{distribution[i]}\n")
 
 
+def data_plotter(filepath, column):
+    with open(filepath, "r") as inp:
+        lines = inp.readlines()
+        d_points = []
+
+        for line in lines:
+            parts = line.split(",")
+            d_points.append(int(parts[column]))
+
+        y_points = [i for i in d_points if 10000 > i > 0]
+        y_points.sort()
+
+        # min-max normalization
+        # y_min = y_points[0]
+        # y_max = y_points[-1]
+        # for i in range(len(y_points)):
+        #     y_points[i] = ((y_points[i] - y_min) / (y_max - y_min))
+
+        # categorize per 100 followers into one group
+        group_lim = 100
+        total_users = len(y_points)
+        cate_y_points = []
+        count = 0
+        for p in y_points:
+            if p < group_lim:
+                count += 1
+            else:
+                # normalizing to percentage of users
+                cate_y_points.append(count / total_users * 100.0)
+                # count = 0 # commented as I'm doing cumulative sum.
+                group_lim += 100
+
+        # column sum for cdf
+        # sum = 0
+        # y_cumsum = []
+        # for p in y_points:
+        #     sum += p
+        #     y_cumsum.append(sum)
+
+        x_points = [i for i in range(1, len(cate_y_points) + 1)]
+
+        plt.plot(x_points, cate_y_points)
+        # plt.plot(x_points, y_cumsum, "r--")
+        plt.show()
+
+        count = 100
+        for i in cate_y_points:
+            print(f"<{count}, {i}%")
+            count += 100
 
 
 def main():
-    parse_counts_log()
-
+    # parse_counts_log()
+    user_info_parser()
+    # filter_unwanted_users()
+    # data_plotter("followers.csv", 1)
 
 
 if __name__ == '__main__':
