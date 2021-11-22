@@ -141,6 +141,7 @@ def data_plotter(filepath, column):
         # categorize per 100 followers into one group
         group_lim = 100
         total_users = len(y_points)
+        print(f"total users = {total_users}")
         cate_y_points = []
         count = 0
         for p in y_points:
@@ -170,12 +171,45 @@ def data_plotter(filepath, column):
             print(f"<{count}, {i}%")
             count += 100
 
+def user_set_generation():
+    with open("followers.csv", mode="r", encoding="utf8") as in_followers, open(
+            "following.csv", mode="r", encoding="utf8") as in_following, open("userset.csv", mode="w") as out_f:
+        lines = in_followers.readlines()
+        set_b = {}
+        for line in lines:
+            parts = line.strip().split(",")
+            followers = int(parts[2])
+
+            if followers <= 1500:
+                set_b[parts[1]] = {}
+                set_b[parts[1]]['take'] = 0
+                set_b[parts[1]]['followers'] = followers
+
+        lines = in_following.readlines()
+        for line in lines:
+            parts = line.strip().split(",")
+            followings = int(parts[2])
+
+            if parts[1] in set_b and followings <= 1500:
+                set_b[parts[1]]['take'] = 1
+                set_b[parts[1]]['followings'] = followings
+
+        total_users = 0
+        for key in set_b.keys():
+            if set_b[key]['take'] == 1:
+                out_f.write(f"{key},{set_b[key]['followers']},{set_b[key]['followings']}\n")
+                total_users += 1
+
+        print(f"total users = {total_users}")
+
+
 
 def main():
     # parse_counts_log()
     # filter_unwanted_users()
     # user_info_parser()
-    data_plotter("tweets_count.csv", 2)
+    # data_plotter("following.csv", 2)
+    user_set_generation()
 
 
 if __name__ == '__main__':
