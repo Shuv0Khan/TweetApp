@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 import time
 import traceback
@@ -118,6 +119,58 @@ class ApiProcessor:
                     self.next_token = json_response["meta"]["next_token"]
                 else:
                     break
+
+    def get_followers(self):
+        url = 'https://api.twitter.com/1.1/followers/list.json'
+        collection_name = 'followers'
+
+        file = open('userset.csv', mode="r")
+        lines = file.readlines()
+        file.close()
+
+        user_ids = []
+        for line in lines:
+            user_id = line.strip().strip(",")[0]
+            user_ids.append(user_id)
+
+        id_index = 0
+        while id_index < len(user_ids):
+            query_tuple_list = [('user_id', str(user_ids[id_index])),
+                                ('count', '200'),
+                                ('cursor', '-1')]
+            all_followers = []
+
+            while True:
+                if len(self.next_token) != 0:
+                    query_tuple_list.pop()
+                    query_tuple_list.append(('cursor', self.next_token))
+
+                try:
+                    json_response = recent_search.connect_to_endpoint(url, query_tuple_list)
+                    dict_response = json.loads(json_response)
+                    all_followers.extend(dict_response['users'])
+                    logging.debug(f"got response for userid: {user_ids[id_index]}, followers collected in this request: {len(dict_response['users'])}, total followers collected: {len(all_followers)}")
+                except Exception as e:
+                    traceback.print_exc()
+                    code, msg = e.args
+                    if code == 429:
+                        logging.debug(f"Going to sleep at - {time.ctime()}")
+                        time.sleep(15 * 60)
+                        logging.debug(f"Awake at - {time.ctime()}")
+                        continue
+                    else:
+                        exit(0)
+
+                if "next_token" in json_response:
+                    self.next_token = json_response["next_token"]
+                else:
+                    break
+
+            followers_of_user = {}
+            followers_of_user['user_id'] = user_ids[id_index]
+            followers_of_user['followers'] = all_followers
+            id_index += 1
+            self.save(collection_name, followers_of_user)
 
     def save(self, collection, json_response):
         self.mongo.save(collection, json_response)
