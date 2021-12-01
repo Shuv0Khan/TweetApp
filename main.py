@@ -21,7 +21,7 @@ def main():
     logging.debug(f"negative key - {len(constants.negative_keywords)}")
 
     apiProcessor = api_processor.ApiProcessor()
-    apiProcessor.get_users()
+    apiProcessor.get_followers()
     # apiProcessor.start_twitterdev()
 
     # full_archive_search = search_tweet_interface.FullArchiveSearch()

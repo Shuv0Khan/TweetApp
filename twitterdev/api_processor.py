@@ -3,6 +3,7 @@ import json
 import logging
 import time
 import traceback
+import os
 
 from core import mongodb_processor
 from twitterdev import recent_search
@@ -121,6 +122,7 @@ class ApiProcessor:
                     break
 
     def get_followers(self):
+        path = "/home/sonata-lab-1/Documents/Shuvo/Workspace/pending"
         url = 'https://api.twitter.com/1.1/followers/list.json'
         collection_name = 'followers'
 
@@ -130,28 +132,29 @@ class ApiProcessor:
 
         user_ids = []
         for line in lines:
-            user_id = line.strip().strip(",")[0]
+            user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 0
+        id_index = 192
         while id_index < len(user_ids):
             query_tuple_list = [('user_id', str(user_ids[id_index])),
                                 ('count', '200'),
                                 ('cursor', '-1')]
             all_followers = []
+            self.next_token = None
 
             while True:
-                if len(self.next_token) != 0:
+                if self.next_token is not None:
                     query_tuple_list.pop()
                     query_tuple_list.append(('cursor', self.next_token))
 
                 try:
-                    json_response = recent_search.connect_to_endpoint(url, query_tuple_list)
-                    dict_response = json.loads(json_response)
+                    dict_response = recent_search.connect_to_endpoint(url, query_tuple_list)
                     all_followers.extend(dict_response['users'])
                     logging.debug(f"got response for userid: {user_ids[id_index]}, followers collected in this request: {len(dict_response['users'])}, total followers collected: {len(all_followers)}")
                 except Exception as e:
                     traceback.print_exc()
+                    logging.error(e)
                     code, msg = e.args
                     if code == 429:
                         logging.debug(f"Going to sleep at - {time.ctime()}")
@@ -159,18 +162,24 @@ class ApiProcessor:
                         logging.debug(f"Awake at - {time.ctime()}")
                         continue
                     else:
-                        exit(0)
+                        time.sleep(30 * 60)
 
-                if "next_token" in json_response:
-                    self.next_token = json_response["next_token"]
+                if "next_cursor" in dict_response and dict_response["next_cursor"] != 0:
+                    self.next_token = dict_response["next_cursor"]
                 else:
                     break
 
-            followers_of_user = {}
-            followers_of_user['user_id'] = user_ids[id_index]
-            followers_of_user['followers'] = all_followers
-            id_index += 1
+                time.sleep(2)
+
+            followers_of_user = {'user_id': user_ids[id_index], 'followers': all_followers}
             self.save(collection_name, followers_of_user)
+            logging.debug(f"finished saving followers for user: {user_ids[id_index]}")
+
+            # dir_list = os.listdir(path)
+            # with open(f"{path}/{user_ids[id_index]}", mode="w") as f:
+            #     pass
+
+            id_index += 1
 
     def save(self, collection, json_response):
         self.mongo.save(collection, json_response)
