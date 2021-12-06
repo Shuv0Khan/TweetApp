@@ -135,8 +135,9 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 192
-        while id_index < len(user_ids):
+        id_index = 6104
+        end_index = 500000
+        while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
                                 ('count', '200'),
                                 ('cursor', '-1')]
