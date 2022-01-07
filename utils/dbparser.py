@@ -55,6 +55,21 @@ def get_all_user_follower_following_counts():
     out_wname.close()
     out_wt.close()
 
+def get_all_users_bio():
+    mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
+    collection = mongodb.get_collection(name='users_info')
+    cursor = mongodb['users_info'].find({}, {'data.id': 1, 'data.description': 1, 'data.entities': 1, '_id': 0})
+    out = open("users_bio.csv", "w")
+
+    for data_list in cursor:
+        for key in data_list:
+            for data in data_list[key]:
+                bio = data['description'].strip()
+                bio = bio.replace('\n',' ')
+                out.write(f"{data['id']}\t{bio}\n")
+
+    out.close()
+
 def neo_user_info_transfer():
     userset={}
     with open("users_with_username.csv", mode="r", encoding="utf8") as unf, open("userset.csv", mode="r", encoding="utf8") as fset:
@@ -101,7 +116,8 @@ def main():
 
     # get_all_unique_author_ids()
     # get_all_user_follower_following_counts()
-    neo_user_info_transfer()
+    # neo_user_info_transfer()
+    get_all_users_bio()
 
 
 if __name__ == '__main__':
