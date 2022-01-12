@@ -1,7 +1,14 @@
+import traceback
 from math import ceil, floor
+
+import nltk
 from pylab import *
 import matplotlib.pyplot as plt
-
+import re
+from nltk import word_tokenize
+import wordcloud
+from wordcloud import WordCloud
+from collections import defaultdict
 
 def parse_counts_log():
     file = open("../counts.log", "r")
@@ -202,6 +209,111 @@ def user_set_generation():
 
         print(f"total users = {total_users}")
 
+def user_bio_parser():
+    with open("users_bio.csv", mode="r", encoding="utf8") as fin, open(
+            "words.txt", mode="w", encoding="utf8") as fout1, open(
+            "hashtags.txt", mode="w", encoding="utf8") as fout2:
+        users_wout_bio = 0
+        for line in fin:
+            try:
+                parts = line.split("\t")
+                if len(parts) == 1:
+                    users_wout_bio += 1
+                    continue
+
+                line = parts[1]
+
+                # Remove links
+                line = re.sub(r'https?:\S+', ' ', line)
+
+                # Remove non-english characters
+                # source - https://www.geeksforgeeks.org/python-remove-non-english-characters-strings-from-list/
+                line = re.sub("[^\u0000-\u05C0\u2100-\u214F]+", " ", line)
+
+                # Lowercase all words
+                line = line.lower()
+
+                words = line.split()
+                for word in words:
+                    if word.startswith("@"):
+                        continue
+                    elif word.startswith("#"):
+                        fout2.write(f'{word} ')
+                    else:
+                        fout1.write(f'{word} ')
+
+                fout1.write("\n")
+                fout2.write("\n")
+
+            except Exception:
+                traceback.print_exc()
+                print(line)
+                exit(1)
+
+        print(f'users without bio: {users_wout_bio}')
+
+def users_bio_word_cloud():
+    with open("words.txt", mode="r", encoding="utf8") as fwords, open(
+            "hashtags.txt", mode="r", encoding="utf8") as fhashs:
+        rawtxt = fwords.readlines()
+        rawhashs = fhashs.readlines()
+
+        # Tokenize, lemmatize and count frequencies
+        lemmatizer = nltk.WordNetLemmatizer()
+        stop_words = set(nltk.corpus.stopwords.words('english'))
+        word_freq = defaultdict(int)
+        lword_freq = defaultdict(int)
+
+        for line in rawtxt:
+            line = line.strip()
+
+            if len(line) == 0:
+                continue
+
+            # Tokenize lines
+            words = [w for w in word_tokenize(line) if w.isalpha() and w not in stop_words]
+
+            # Remove numbers and Lemmatize the words to roots
+            lemmatized_words = [lemmatizer.lemmatize(w) for w in words]
+
+            for w in words:
+                word_freq[w] += 1
+
+            for lw in lemmatized_words:
+                lword_freq[lw] += 1
+
+        hash_freq = defaultdict(int)
+
+        for line in rawhashs:
+            line = line.strip()
+
+            if len(line) == 0:
+                continue
+
+            # Tokenize lines
+            words = [w for w in word_tokenize(line) if w.isalpha()]
+
+            for w in words:
+                hash_freq[f'#{w}'] += 1
+
+
+        wordcloud = WordCloud(max_font_size=50, max_words=100, background_color="white").generate_from_frequencies(word_freq)
+        plt.figure()
+        plt.imshow(wordcloud, interpolation="bilinear")
+        plt.axis("off")
+
+        lwordcloud = WordCloud(max_font_size=50, max_words=100, background_color="white").generate_from_frequencies(lword_freq)
+        plt.figure()
+        plt.imshow(lwordcloud, interpolation="bilinear")
+        plt.axis("off")
+
+        hwordcloud = WordCloud(max_font_size=50, max_words=100, background_color="white").generate_from_frequencies(hash_freq)
+        plt.figure()
+        plt.imshow(hwordcloud, interpolation="bilinear")
+        plt.axis("off")
+
+        plt.show()
+
 
 
 def main():
@@ -209,7 +321,9 @@ def main():
     # filter_unwanted_users()
     # user_info_parser()
     # data_plotter("following.csv", 2)
-    user_set_generation()
+    # user_set_generation()
+    # user_bio_parser()
+    users_bio_word_cloud()
 
 
 if __name__ == '__main__':
