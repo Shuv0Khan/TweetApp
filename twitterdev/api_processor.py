@@ -135,7 +135,7 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 6104
+        id_index = 0
         end_index = 500000
         while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
@@ -163,7 +163,7 @@ class ApiProcessor:
                         logging.debug(f"Awake at - {time.ctime()}")
                         continue
                     else:
-                        time.sleep(30 * 60)
+                        time.sleep(2 * 60)
 
                 if "next_cursor" in dict_response and dict_response["next_cursor"] != 0:
                     self.next_token = dict_response["next_cursor"]
@@ -175,6 +175,68 @@ class ApiProcessor:
             followers_of_user = {'user_id': user_ids[id_index], 'followers': all_followers}
             self.save(collection_name, followers_of_user)
             logging.debug(f"finished saving followers for user: {user_ids[id_index]}")
+
+            # dir_list = os.listdir(path)
+            # with open(f"{path}/{user_ids[id_index]}", mode="w") as f:
+            #     pass
+
+            id_index += 1
+
+
+    def get_followings(self):
+        path = "/home/sonata-lab-1/Documents/Shuvo/Workspace/pending"
+        url = 'https://api.twitter.com/1.1/friends/list.json'
+        collection_name = 'followings'
+
+        file = open('userset2.csv', mode="r")
+        lines = file.readlines()
+        file.close()
+
+        user_ids = []
+        for line in lines:
+            user_id = line.strip().split(",")[0]
+            user_ids.append(user_id)
+
+        id_index = 0
+        end_index = 300000
+        while id_index < end_index:
+            query_tuple_list = [('user_id', str(user_ids[id_index])),
+                                ('count', '200'),
+                                ('cursor', '-1')]
+            all_followings = []
+            self.next_token = None
+
+            while True:
+                if self.next_token is not None:
+                    query_tuple_list.pop()
+                    query_tuple_list.append(('cursor', self.next_token))
+
+                try:
+                    dict_response = recent_search.connect_to_endpoint(url, query_tuple_list)
+                    all_followings.extend(dict_response['users'])
+                    logging.debug(f"got response for userid: {user_ids[id_index]}, followings collected in this request: {len(dict_response['users'])}, total followings collected: {len(all_followings)}")
+                except Exception as e:
+                    traceback.print_exc()
+                    logging.error(e)
+                    code, msg = e.args
+                    if code == 429:
+                        logging.debug(f"Going to sleep at - {time.ctime()}")
+                        time.sleep(1 * 60)
+                        logging.debug(f"Awake at - {time.ctime()}")
+                        continue
+                    else:
+                        time.sleep(2 * 60)
+
+                if "next_cursor" in dict_response and dict_response["next_cursor"] != 0:
+                    self.next_token = dict_response["next_cursor"]
+                else:
+                    break
+
+                time.sleep(2)
+
+            followings_of_user = {'user_id': user_ids[id_index], 'followings': all_followings}
+            self.save(collection_name, followings_of_user)
+            logging.debug(f"finished saving followings for user: {user_ids[id_index]}")
 
             # dir_list = os.listdir(path)
             # with open(f"{path}/{user_ids[id_index]}", mode="w") as f:
