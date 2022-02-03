@@ -1,4 +1,7 @@
+import traceback
+
 import pymongo
+from pymongo.errors import DocumentTooLarge
 
 
 class MongoDBProcessor:
@@ -10,4 +13,9 @@ class MongoDBProcessor:
         self.my_db = self.my_client[self.db_name]
 
     def save(self, collection, json_data):
+        # try:
         self.my_db[collection].insert_one(json_data)
+        # except DocumentTooLarge as e:
+        #     traceback.print_exc()
+            # break json_data into smaller parts with pagination.
+            # lenght = len(json_data)

@@ -197,7 +197,7 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 0
+        id_index = 21380
         end_index = 300000
         while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
@@ -224,6 +224,10 @@ class ApiProcessor:
                         time.sleep(1 * 60)
                         logging.debug(f"Awake at - {time.ctime()}")
                         continue
+                    elif code == 401:
+                        logging.debug(f"Skipping the user: {user_ids[id_index]} as not authorized")
+                        all_followings = []
+                        break
                     else:
                         time.sleep(2 * 60)
 
@@ -232,11 +236,16 @@ class ApiProcessor:
                 else:
                     break
 
+                if len(all_followings) == 400:
+                    logging.error(f"still has followings left but 400 followings reached already. skipping user: {user_ids[id_index]}")
+                    break
+
                 time.sleep(2)
 
             followings_of_user = {'user_id': user_ids[id_index], 'followings': all_followings}
-            self.save(collection_name, followings_of_user)
-            logging.debug(f"finished saving followings for user: {user_ids[id_index]}")
+            if len(all_followings) > 0:
+                self.save(collection_name, followings_of_user)
+            logging.debug(f"finished saving followings for user: {user_ids[id_index]}, followings: {len(all_followings)}")
 
             # dir_list = os.listdir(path)
             # with open(f"{path}/{user_ids[id_index]}", mode="w") as f:
