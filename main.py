@@ -1,7 +1,10 @@
 import logging
+import time
+import traceback
 
 from twitterdev import api_processor
 from utils import constants
+import smtplib, ssl
 
 
 def main():
@@ -20,6 +23,8 @@ def main():
     logging.debug("negative_keywords = {}".format(constants.negative_keywords))
     logging.debug(f"negative key - {len(constants.negative_keywords)}")
 
+    # raise Exception("Testing email")
+
     apiProcessor = api_processor.ApiProcessor()
     # apiProcessor.get_followers()
     apiProcessor.get_followings()
@@ -33,4 +38,22 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        traceback.print_exc()
+        logging.error(e)
+
+        # Send email
+        port = 465  # For SSL
+        password = "Confirm@2022"
+
+        # Create a secure SSL context
+        context = ssl.create_default_context()
+
+        with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+            server.login("tweetapp71@gmail.com", password)
+            message = f"Subject: Collection Shutdown - {time.ctime()} \n\nShutdown with exception - {e}"
+            server.sendmail("tweetapp71@gmail.com", "naweemshuvo@gmail.com", message)
+        # exit
+        exit(1)
