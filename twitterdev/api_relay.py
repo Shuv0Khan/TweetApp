@@ -1,10 +1,11 @@
 import json
+import time
 
 import requests
 from flask import Flask
 
 headersDic = {
-    'Authorization': f'Bearer AAAAAAAAAAAAAAAAAAAAAA30TgEAAAAAdtqd1KsuXVp%2F%2BPMWDp0ju%2BiDXxc%3DyBFbdev3Kc505uj7EYSaaUQkH6m4uDcoy1jtjHqHaZLlI34DNP',
+    'Authorization': f'Bearer AAAAAAAAAAAAAAAAAAAAAHldUAEAAAAAZWfc8Puhngcu05YyMR9DYRfNcl0%3DmrcqwGb85ve7cgdDevvP6pwetWXPdbTVJvFqYl6kN3VwQhOo0k',
     'User-Agent': 'v2UserLookupPython'
 }
 
@@ -17,7 +18,7 @@ def hello():
 @app.route('/relay/<params>')
 def relay(params):
     url = 'https://api.twitter.com/1.1/friends/list.json'
-    print(f"params = {params}")
+    print(f"{time.ctime()}: params = {params}")
 
     query_tuple_list = []
     params = params[1:-1]
@@ -31,11 +32,11 @@ def relay(params):
         response = requests.get(url,
                                 headers=headersDic,
                                 params=query_tuple_list)
-        print(f'status code = {response.status_code}')
+        print(f'{time.ctime()}: status code = {response.status_code}')
         if response.status_code != 200:
             raise Exception(response.status_code, response.text)
 
-        print("got response.")
+        print(f"{time.ctime()}: got response.")
 
         return response.json()
     except Exception as e:
