@@ -1,4 +1,5 @@
 import json
+import time
 
 import requests
 from flask import Flask
@@ -17,7 +18,7 @@ def hello():
 @app.route('/relay/<params>')
 def relay(params):
     url = 'https://api.twitter.com/1.1/friends/list.json'
-    print(f"params = {params}")
+    print(f"{time.ctime()}: params = {params}")
 
     query_tuple_list = []
     params = params[1:-1]
@@ -31,11 +32,11 @@ def relay(params):
         response = requests.get(url,
                                 headers=headersDic,
                                 params=query_tuple_list)
-        print(f'status code = {response.status_code}')
+        print(f'{time.ctime()}: status code = {response.status_code}')
         if response.status_code != 200:
             raise Exception(response.status_code, response.text)
 
-        print("got response.")
+        print(f"{time.ctime()}: got response.")
 
         return response.json()
     except Exception as e:
