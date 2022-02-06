@@ -41,8 +41,8 @@ def get_all_user_metrics():
     mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
     collection = mongodb.get_collection(name='users_info')
     cursor = mongodb['users_info'].find({}, {
-        'data.id': 1, 'data.username': 1, 'location': 1, 'data.public_metrics': 1,
-        'protected': 1, 'created_at': 1, 'profile_image_url': 1, 'verified': 1, '_id': 0
+        'data.id': 1, 'data.username': 1, 'data.location': 1, 'data.public_metrics': 1,
+        'data.protected': 1, 'data.created_at': 1, 'data.profile_image_url': 1, 'data.verified': 1, '_id': 0
     })
     with open("users_metrics.csv", mode="w", encoding="utf8") as out:
         out.write(
@@ -50,9 +50,21 @@ def get_all_user_metrics():
         for data_list in cursor:
             for key in data_list:
                 for data in data_list[key]:
-                    loc = '_NA_'
+                    loc = prot = creat = veri = pp = '_NA_'
                     if 'location' in data:
-                        loc = data['location']
+                        loc = data['location'].replace(',', ';')
+
+                    if 'protected' in data:
+                        prot = str(data['protected'])
+
+                    if 'created_at' in data:
+                        creat = data['created_at']
+
+                    if 'verified' in data:
+                        veri = str(data['verified'])
+
+                    if 'profile_image_url' in data:
+                        pp = data['profile_image_url']
 
                     line = str(data['id']) + ', ' + \
                            data['username'] + ', ' + \
@@ -61,13 +73,12 @@ def get_all_user_metrics():
                            str(data['public_metrics']['following_count']) + ', ' + \
                            str(data['public_metrics']['tweet_count']) + ', ' + \
                            str(data['public_metrics']['listed_count']) + ', ' + \
-                           str(data['protected']) + ', ' + \
-                           str(data['created_at']) + ', ' + \
-                           str(data['verified']) + ', ' + \
-                           str(data['profile_image_url']) + '\n'
+                           prot + ', ' + \
+                           creat + ', ' + \
+                           veri + ', ' + \
+                           pp + '\n'
 
                     out.write(line)
-                    return
 
 
 def get_all_users_bio():
