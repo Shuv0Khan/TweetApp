@@ -53,6 +53,7 @@ def get_all_user_metrics():
                     loc = prot = creat = veri = pp = '_NA_'
                     if 'location' in data:
                         loc = data['location'].replace(',', ';')
+                        loc = loc.replce('\n', ' ')
 
                     if 'protected' in data:
                         prot = str(data['protected'])
