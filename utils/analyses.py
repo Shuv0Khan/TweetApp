@@ -253,37 +253,65 @@ def users_bio_ed():
     classifier = pipeline("text-classification", model='bhadresh-savani/distilbert-base-uncased-emotion',
                           return_all_scores=True)
     with open('words_with_emoji.txt', mode='r', encoding='utf8') as fin, open(
-            'users_bio_distilbert.csv', mode='w') as fout:
+            'users_bio_distilbert.csv', mode='a') as fout:
 
-        fout.write('id,sadness,joy,love,anger,fear,surprise,verdict\n')
+        # fout.write('id,sadness,joy,love,anger,fear,surprise,verdict\n')
+        lines = fin.readlines()
+        index = 1089873
+        total_lines = len(lines)
+        while index < total_lines:
+            line = lines[index]
 
-        for line in fin:
-            parts = line.strip().split('\t')
+            try:
+                index += 1
+                parts = line.strip().split('\t')
 
-            if len(parts) == 1:
-                continue
+                if len(parts) == 1:
+                    continue
 
-            prediction = classifier(parts[1], )
+                prediction = classifier(parts[1], )
 
-            # I'm not confident if the prediction will return the list of dict always in the same order
-            sadness = joy = love = anger = fear = surprise = 0
-            for pred in prediction[0]:
-                if pred['label'] == 'sadness':
-                    sadness = pred['score']
-                elif pred['label'] == 'joy':
-                    joy = pred['score']
-                elif pred['label'] == 'love':
-                    love = pred['score']
-                elif pred['label'] == 'anger':
-                    anger = pred['score']
-                elif pred['label'] == 'fear':
-                    fear = pred['score']
-                elif pred['label'] == 'surprise':
-                    surprise = pred['score']
+                # I'm not confident if the prediction will return the list of dict always in the same order
+                sadness = joy = love = anger = fear = surprise = 0
+                verdict = ''
+                max_prob = 0
+                for pred in prediction[0]:
+                    if pred['label'] == 'sadness':
+                        sadness = pred['score']
+                        if sadness > max_prob:
+                            max_prob = sadness
+                            verdict = 'sadness'
+                    elif pred['label'] == 'joy':
+                        joy = pred['score']
+                        if joy > max_prob:
+                            max_prob = joy
+                            verdict = 'joy'
+                    elif pred['label'] == 'love':
+                        love = pred['score']
+                        if love > max_prob:
+                            max_prob = love
+                            verdict = 'love'
+                    elif pred['label'] == 'anger':
+                        anger = pred['score']
+                        if anger > max_prob:
+                            max_prob = anger
+                            verdict = 'anger'
+                    elif pred['label'] == 'fear':
+                        fear = pred['score']
+                        if fear > max_prob:
+                            max_prob = fear
+                            verdict = 'fear'
+                    elif pred['label'] == 'surprise':
+                        surprise = pred['score']
+                        if surprise > max_prob:
+                            max_prob = surprise
+                            verdict = 'surprise'
 
-            sorted_scores = sorted(prediction[0], key=lambda t: t['score'], reverse=True)
+                fout.write(f'{parts[0]},{sadness},{joy},{love},{anger},{fear},{surprise},{verdict}\n')
 
-            fout.write(f'{parts[0]},{sadness},{joy},{love},{anger},{fear},{surprise},{sorted_scores[0]["label"]}\n')
+            except Exception as e:
+                print(e)
+                print(line)
 
 
 def main():
