@@ -73,8 +73,8 @@ def filter_unwanted_users():
 def user_info_parser():
     with open("uusers.csv", mode="r", encoding="utf8") as inp, open(
             "followers.csv", mode="w", encoding="utf8") as out_followers, open(
-            "following.csv", mode="w", encoding="utf8") as out_following, open(
-            "tweets_count.csv", mode="w", encoding="utf8") as out_tweets:
+        "following.csv", mode="w", encoding="utf8") as out_following, open(
+        "tweets_count.csv", mode="w", encoding="utf8") as out_tweets:
 
         lines = inp.readlines()
         counts = []
@@ -147,8 +147,8 @@ def user_set_generation():
 def user_bio_parser():
     with open("users_bio.csv", mode="r", encoding="utf8") as fin, open(
             "words_with_emoji.txt", mode="w", encoding="utf8") as fout1, open(
-            "hashtags.txt", mode="w", encoding="utf8") as fout2, open(
-            "urls.txt", mode="w", encoding="utf8") as fout3:
+        "hashtags.txt", mode="w", encoding="utf8") as fout2, open(
+        "urls.txt", mode="w", encoding="utf8") as fout3:
         users_wout_bio = 0
         session = requests.Session()
         for line in fin:
@@ -197,6 +197,28 @@ def user_bio_parser():
                 exit(1)
 
         print(f'users without bio: {users_wout_bio}')
+
+
+def unique_user_bio_selection():
+    users = {}
+    skipped_count = 0
+    with open("words_with_emoji.txt", mode='r', encoding='utf8') as fin:
+        for line in fin:
+            parts = line.strip().split('\t')
+            if len(parts) == 1:
+                continue
+
+            if (parts[0] not in users) or (users[parts[0]] != parts[1]):
+                users[parts[0]] = parts[1]
+            else:
+                skipped_count += 1
+
+    with open("words_with_emoji.txt", mode='w', encoding='utf8') as fout:
+        for key in users:
+            fout.write(f'{key}\t{users[key]}\n')
+
+    print(f"Total unique bios: {len(users)}")
+    print(f"Skipped: {skipped_count}")
 
 
 def users_bio_url_resolver():
@@ -268,7 +290,8 @@ def main():
     # filter_unwanted_users()
     # user_info_parser()
     # user_set_generation()
-    user_bio_parser()
+    # user_bio_parser()
+    unique_user_bio_selection()
     # users_bio_url_resolver()
     # users_bio_url_domains()
 
