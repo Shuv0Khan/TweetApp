@@ -1,14 +1,14 @@
 import traceback
 from collections import defaultdict
 
+import matplotlib.pyplot as plt
 import nltk
 from flair.data import Sentence
 from flair.models import TextClassifier
 from nltk import word_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from pylab import *
-from wordcloud import WordCloud
 from transformers import pipeline
+from wordcloud import WordCloud
 
 
 def data_plotter(filepath, column):
@@ -142,7 +142,7 @@ def users_bio_word_cloud():
 def users_bio_sentiment_analysis():
     with open('users_bio.csv', mode='r', encoding='utf8') as fin_users, open(
             'words.txt', mode='r', encoding='utf8') as fin_words, open(
-        'sentiments.txt', mode='w') as fout_sent:
+            'sentiments.txt', mode='w') as fout_sent:
         # users = fin_users.readlines()
         bios = fin_words.readlines()
         sia = SentimentIntensityAnalyzer()
@@ -245,11 +245,12 @@ def users_bio_sentiment_pie():
     plt.show()
 
 
-def users_bio_ed():
-    '''
+def users_bio_ed_distilbert():
+    """
     using https://huggingface.co/bhadresh-savani/distilbert-base-uncased-emotion
     with the emojis but removing hashtags, mentions, and urls.
-    '''
+    """
+
     classifier = pipeline("text-classification", model='bhadresh-savani/distilbert-base-uncased-emotion',
                           return_all_scores=True)
     with open('words_with_emoji.txt', mode='r', encoding='utf8') as fin, open(
@@ -271,7 +272,9 @@ def users_bio_ed():
 
                 prediction = classifier(parts[1], )
 
-                # I'm not confident if the prediction will return the list of dict always in the same order
+                # I'm not confident if the classifier will return the dict with keys in the same order
+                # Also to get the verdict using maximum probability need to check every score
+
                 sadness = joy = love = anger = fear = surprise = 0
                 verdict = ''
                 max_prob = 0
@@ -314,12 +317,40 @@ def users_bio_ed():
                 print(line)
 
 
+def user_bio_graph_distilbert():
+    sadness = joy = love = anger = fear = surprise = 0
+    with open('users_bio_distilbert.csv', mode='r') as fin:
+        for line in fin:
+            parts = line.strip().split(',')
+            verdict = parts[7]
+
+            if verdict == 'sadness':
+                sadness += 1
+
+            elif verdict == 'joy':
+                joy += 1
+
+            elif verdict == 'love':
+                love += 1
+
+            elif verdict == 'anger':
+                anger += 1
+
+            elif verdict == 'fear':
+                fear += 1
+
+            elif verdict == 'surprise':
+                surprise += 1
+
+    plt.bar
+
+
 def main():
     # data_plotter("following.csv", 2)
     # users_bio_word_cloud()
     # users_bio_sentiment_analysis()
     # users_bio_sentiment_pie()
-    users_bio_ed()
+    users_bio_ed_distilbert()
 
 
 if __name__ == '__main__':
