@@ -2,6 +2,7 @@ import logging
 
 from core import mongodb_processor, neo4j_processor
 from utils import constants
+from collections import defaultdict
 
 
 def get_all_tweets():
@@ -19,25 +20,66 @@ def get_all_tweets():
                 logging.debug(tweet_list["text"])
 
 
-def get_all_unique_author_ids():
+def get_all_unique_tweet_author_ids():
+    """
+    All the tweets collected are saved in MongoDB with collection names
+    corresponding to the day of the Tweet. For example if a Tweet was
+    made on 23rd January 2010, the name of the collection with the Tweet
+    will be 20100123.
+
+    Each Tweet object, among other metrics, includes the author_id that
+    indicates the author of the Tweet. Our primary User set is made from
+    collecting all the authors from the collected tweets.
+    """
+
+    # TODO: check if the unique user collection working
+
     mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
     collections = mongodb.list_collection_names()
 
-    users = {}
+    users = defaultdict(int)
     for collection in collections:
+
+        try:
+            ''' 
+            Tweet Collections are named as dates without separator like - 20220131
+            If a Collection name can't be converted to int then that collection
+            is used for other purposes like user_info/followers etc.
+            '''
+            col_to_int = int(collection)
+        except Exception as e:
+            logging.debug(f"Collection - {collection} skipped")
+            continue
+
         cursor = mongodb[collection].find({}, {"data.author_id": 1})
 
         for data_list in cursor:
             for tweet_list in data_list["data"]:
                 author = tweet_list["author_id"]
-                if author not in users.keys():
-                    users[author] = 1
+                if author not in users:
+                    users[author] += 1
 
-    for key in users:
-        logging.debug(key)
+    with open("unique_author_ids.csv", mode='w') as fout:
+        for key in users:
+            fout.write(f'{key}\n')
 
 
 def get_all_user_metrics():
+    """
+    Using the Unique Author IDs found from our collected Tweets
+    We've queried Tweeter for user information and saved them in
+    MongoDB. The collection name is "user_info" and each document
+    has an "id" parameter that holds the user id.
+
+    Due to Collection process restarting multiple times there seems
+    to be quite a lot of duplicate user information in the DB. Here
+    We are collecting relevant user info into one single file for
+    further processing.
+    """
+
+    # TODO: unique user check. also try to find out why so many duplicates
+    # TODO: location newline replace may not be working. check.
+
     mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
     collection = mongodb.get_collection(name='users_info')
     cursor = mongodb['users_info'].find({}, {
@@ -50,62 +92,93 @@ def get_all_user_metrics():
         for data_list in cursor:
             for key in data_list:
                 for data in data_list[key]:
-                    loc = prot = creat = veri = pp = '_NA_'
+                    '''
+                    It is not guaranteed that every user object
+                    contains all the parameters. Missing params
+                    are indicated by "_NA_"
+                    '''
+
+                    user_location = is_protected = created_at = is_verified = pp_url = '_NA_'
                     if 'location' in data:
-                        loc = data['location'].replace(',', ';')
-                        loc = loc.replce('\n', ' ')
+                        # Since it's a csv file we are replacing all "," and new lines.
+                        user_location = data['location'].replace(',', ';')
+                        user_location = user_location.replce('\n', ' ')
 
                     if 'protected' in data:
-                        prot = str(data['protected'])
+                        is_protected = str(data['protected'])
 
                     if 'created_at' in data:
-                        creat = data['created_at']
+                        created_at = data['created_at']
 
                     if 'verified' in data:
-                        veri = str(data['verified'])
+                        is_verified = str(data['verified'])
 
                     if 'profile_image_url' in data:
-                        pp = data['profile_image_url']
+                        pp_url = data['profile_image_url']
 
                     line = str(data['id']) + ', ' + \
                            data['username'] + ', ' + \
-                           loc + ', ' + \
+                           user_location + ', ' + \
                            str(data['public_metrics']['followers_count']) + ', ' + \
                            str(data['public_metrics']['following_count']) + ', ' + \
                            str(data['public_metrics']['tweet_count']) + ', ' + \
                            str(data['public_metrics']['listed_count']) + ', ' + \
-                           prot + ', ' + \
-                           creat + ', ' + \
-                           veri + ', ' + \
-                           pp + '\n'
+                           is_protected + ', ' + \
+                           created_at + ', ' + \
+                           is_verified + ', ' + \
+                           pp_url + '\n'
 
                     out.write(line)
 
 
 def get_all_users_bio():
+    """
+    Each User in "user_info" collection has a profile description
+    that a Tweeter user can set. These are called user bios.
+
+    Here we are separately collecting all the User Bios. As before
+    there are duplicate users in the collection that needs to be
+    filtered.
+    """
+
+    # TODO: ensure unique users.
+    # TODO: check bio new lines. sometimes not working.
+
     mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
     collection = mongodb.get_collection(name='users_info')
     cursor = mongodb['users_info'].find({}, {'data.id': 1, 'data.description': 1, 'data.entities': 1, '_id': 0})
-    out = open("users_bio.csv", "w")
 
-    for data_list in cursor:
-        for key in data_list:
-            for data in data_list[key]:
-                bio = data['description'].strip()
-                bio = bio.replace('\n', ' ')
-                out.write(f"{data['id']}\t{bio}\n")
-
-    out.close()
+    with open("users_bio.csv", "w") as out:
+        for data_list in cursor:
+            for key in data_list:
+                for data in data_list[key]:
+                    bio = data['description'].strip()
+                    bio = bio.replace('\n', ' ')
+                    out.write(f"{data['id']}\t{bio}\n")
 
 
 def neo_user_info_transfer():
+    """
+    Creating Nodes in neo4j DB for users selected
+    for Follower/Following collection. This is done
+    to build the network in parallel to Follower/Following
+    collection.
+
+    'userset.csv' file is checked for duplicate users
+    separately before starting this operation.
+    """
+
     userset = {}
-    with open("users_with_username.csv", mode="r", encoding="utf8") as unf, open("userset.csv", mode="r",
-                                                                                 encoding="utf8") as fset:
-        lines = unf.readlines()
-        for line in lines:
+    with open("users_with_username.csv", mode="r", encoding="utf8") as uu_fin, open(
+            "userset.csv", mode="r", encoding="utf8") as uset_fin:
+
+        # Reading all users and their metrics
+        for line in uu_fin:
             parts = line.strip().split(",")
             if len(parts) > 6:
+                # There was some formatting issues in the file.
+                # Those were fixed manually one-by-one, stopping
+                # here each time one was found.
                 print(f"problem in line - {line}")
                 return
             else:
@@ -116,9 +189,9 @@ def neo_user_info_transfer():
                 userset[parts[0]]['following'] = parts[3]
                 userset[parts[0]]['tweets'] = parts[4]
 
-        lines = fset.readlines()
+        # Cross-checking with selected user set and marking the users.
         count = 0
-        for line in lines:
+        for line in uset_fin:
             parts = line.strip().split(",")
             if parts[0] in userset:
                 count += 1
@@ -130,6 +203,8 @@ def neo_user_info_transfer():
         count = 0
         for id in userset.keys():
             if userset[id]['take'] == 1:
+                # Using MERGE-CREATE to ensure that never two users with same id is created.
+
                 cypher = 'MERGE (a:User {id: "' + id + '"}) ON CREATE SET a.name="' + userset[id][
                     'username'] + '", a.followers=' + userset[id]['followers'] + ', a.following=' + userset[id][
                              'following'] + ', a.tweets=' + userset[id]['tweets']
@@ -145,7 +220,7 @@ def main():
                         format='%(message)s',
                         level=logging.DEBUG)
 
-    # get_all_unique_author_ids()
+    # get_all_unique_tweet_author_ids()
     get_all_user_metrics()
     # neo_user_info_transfer()
     # get_all_users_bio()
