@@ -80,17 +80,19 @@ class ApiProcessor:
         for line in lines:
             user_ids.append(line.strip())
 
-        query_tuple_list = [('user.fields', 'created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld'),
+        query_tuple_list = [('user.fields',
+                             'created_at,description,entities,id,location,name,pinned_tweet_id,profile_image_url,protected,public_metrics,url,username,verified,withheld'),
                             ('expansions', 'pinned_tweet_id'),
-                            ('tweet.fields', 'attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld'),
+                            ('tweet.fields',
+                             'attachments,author_id,context_annotations,conversation_id,created_at,entities,geo,id,in_reply_to_user_id,lang,possibly_sensitive,public_metrics,referenced_tweets,reply_settings,source,text,withheld'),
                             ('ids', '')]
 
         id_index = 0
         while id_index < len(user_ids):
             ids = str(user_ids[id_index])
             id_index += 1
-            for id in user_ids[id_index:id_index+99:1]:
-                ids += ','+id
+            for id in user_ids[id_index:id_index + 99:1]:
+                ids += ',' + id
             id_index += 99
 
             query_tuple_list.pop()
@@ -104,7 +106,7 @@ class ApiProcessor:
 
                 try:
                     json_response = recent_search.connect_to_endpoint(url, query_tuple_list)
-                    logging.debug(f"collected id index from {id_index-100} to {id_index}")
+                    logging.debug(f"collected id index from {id_index - 100} to {id_index}")
                 except Exception as e:
                     traceback.print_exc()
                     code, msg = e.args
@@ -154,7 +156,8 @@ class ApiProcessor:
                 try:
                     dict_response = recent_search.connect_to_endpoint(url, query_tuple_list)
                     all_followers.extend(dict_response['users'])
-                    logging.debug(f"got response for userid: {user_ids[id_index]}, followers collected in this request: {len(dict_response['users'])}, total followers collected: {len(all_followers)}")
+                    logging.debug(
+                        f"got response for userid: {user_ids[id_index]}, followers collected in this request: {len(dict_response['users'])}, total followers collected: {len(all_followers)}")
                 except Exception as e:
                     traceback.print_exc()
                     logging.error(e)
@@ -184,7 +187,6 @@ class ApiProcessor:
 
             id_index += 1
 
-
     def get_followings(self):
         path = "/home/sonata-lab-1/Documents/Shuvo/Workspace/pending"
         url = 'https://api.twitter.com/1.1/friends/list.json'
@@ -199,7 +201,7 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 21380
+        id_index = 46834
         end_index = 300000
         while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
@@ -216,7 +218,8 @@ class ApiProcessor:
                 try:
                     dict_response = recent_search.connect_to_endpoint(url, query_tuple_list)
                     all_followings.extend(dict_response['users'])
-                    logging.debug(f"got response for userid: {user_ids[id_index]}, followings collected in this request: {len(dict_response['users'])}, total followings collected: {len(all_followings)}")
+                    logging.debug(
+                        f"got response for userid: {user_ids[id_index]}, followings collected in this request: {len(dict_response['users'])}, total followings collected: {len(all_followings)}")
                 except Exception as e:
                     traceback.print_exc()
                     logging.error(e)
@@ -226,7 +229,7 @@ class ApiProcessor:
                         time.sleep(1 * 60)
                         logging.debug(f"Awake at - {time.ctime()}")
                         continue
-                    elif code == 401:
+                    elif code == 401 or code == 404 or code == 34:
                         logging.debug(f"Skipping the user: {user_ids[id_index]} as not authorized")
                         all_followings = []
                         break
@@ -239,7 +242,8 @@ class ApiProcessor:
                     break
 
                 if len(all_followings) == 400:
-                    logging.error(f"still has followings left but 400 followings reached already. skipping user: {user_ids[id_index]}")
+                    logging.error(
+                        f"still has followings left but 400 followings reached already. skipping user: {user_ids[id_index]}")
                     break
 
                 time.sleep(2)
@@ -247,7 +251,8 @@ class ApiProcessor:
             followings_of_user = {'user_id': user_ids[id_index], 'followings': all_followings}
             if len(all_followings) > 0:
                 self.save(collection_name, followings_of_user)
-            logging.debug(f"finished saving followings for user: {user_ids[id_index]}, followings: {len(all_followings)}")
+            logging.debug(
+                f"finished saving followings for user: {user_ids[id_index]}, followings: {len(all_followings)}")
 
             # dir_list = os.listdir(path)
             # with open(f"{path}/{user_ids[id_index]}", mode="w") as f:
@@ -256,7 +261,7 @@ class ApiProcessor:
             id_index += 1
 
     def get_followings_through_relay(self):
-        url = 'http://127.0.0.1:5000/relay'
+        url = 'http://35.39.45.120:5000/relay'
         collection_name = 'followings'
 
         file = open('userset2.csv', mode="r")
@@ -268,7 +273,7 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 300000
+        id_index = 317138
         end_index = 900000
         while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
@@ -287,7 +292,8 @@ class ApiProcessor:
                     if 'exception' in dict_response:
                         raise Exception(dict_response['code'], dict_response['exception'])
                     all_followings.extend(dict_response['users'])
-                    logging.debug(f"got response for userid: {user_ids[id_index]}, followings collected in this request: {len(dict_response['users'])}, total followings collected: {len(all_followings)}")
+                    logging.debug(
+                        f"got response for userid: {user_ids[id_index]}, followings collected in this request: {len(dict_response['users'])}, total followings collected: {len(all_followings)}")
                 except Exception as e:
                     traceback.print_exc()
                     logging.error(e)
@@ -297,8 +303,8 @@ class ApiProcessor:
                         time.sleep(1 * 60)
                         logging.debug(f"Awake at - {time.ctime()}")
                         continue
-                    elif code == 401:
-                        logging.debug(f"Skipping the user: {user_ids[id_index]} as not authorized")
+                    elif code == 401 or code == 404 or code == 34:
+                        logging.debug(f"Skipping the user: {user_ids[id_index]} as not authorized/not found")
                         all_followings = []
                         break
                     else:
@@ -310,7 +316,8 @@ class ApiProcessor:
                     break
 
                 if len(all_followings) == 400:
-                    logging.error(f"still has followings left but 400 followings reached already. skipping user: {user_ids[id_index]}")
+                    logging.error(
+                        f"still has followings left but 400 followings reached already. skipping user: {user_ids[id_index]}")
                     break
 
                 time.sleep(2)
@@ -318,7 +325,8 @@ class ApiProcessor:
             followings_of_user = {'user_id': user_ids[id_index], 'followings': all_followings}
             if len(all_followings) > 0:
                 self.save(collection_name, followings_of_user)
-            logging.debug(f"finished saving followings for user: {user_ids[id_index]}, followings: {len(all_followings)}")
+            logging.debug(
+                f"finished saving followings for user: {user_ids[id_index]}, followings: {len(all_followings)}")
 
             # dir_list = os.listdir(path)
             # with open(f"{path}/{user_ids[id_index]}", mode="w") as f:
