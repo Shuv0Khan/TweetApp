@@ -4,6 +4,9 @@ from collections import defaultdict
 import requests
 import tldextract
 from pylab import *
+import pandas as pd
+
+# pd.options.plotting.backend = "plotly"
 
 
 def parse_counts_log():
@@ -145,10 +148,10 @@ def user_set_generation():
 
 
 def user_bio_parser():
-    with open("users_bio.csv", mode="r", encoding="utf8") as fin, open(
+    with open("all_user_bios.csv", mode="r", encoding="utf8") as fin, open(
             "words_with_emoji.txt", mode="w", encoding="utf8") as fout1, open(
-        "hashtags.txt", mode="w", encoding="utf8") as fout2, open(
-        "urls.txt", mode="w", encoding="utf8") as fout3:
+            "hashtags.txt", mode="w", encoding="utf8") as fout2, open(
+            "urls.txt", mode="w", encoding="utf8") as fout3:
         users_wout_bio = 0
         session = requests.Session()
         for line in fin:
@@ -285,15 +288,77 @@ def users_bio_url_domains():
             fout.write(f'{k},{v}\n')
 
 
+def users_bio_url_domains_visualization():
+    df = pd.read_csv('url_counts_from_bios.csv', header=None)
+    df.columns = ['domains', 'counts']
+    print(df)
+    print(df.info())
+    print(df[df['domains'].isna()])
+    df['domains'].fillna("notavailable", inplace=True)
+    total = df["counts"].sum()
+    df['percentage'] = (df['counts'] * 100.0) / total
+    print(df.head(10))
+    df[:20].plot.bar(x='domains', y='counts')
+    plt.show()
+    df[:20].plot.hist(y='counts')
+    plt.show()
+
+
+def users_bio_url_domains_classification():
+    kaggle_df = pd.read_csv('kaggle_url_classification.csv')
+
+    # There are some NaN rows in the data
+    kaggle_df.dropna(inplace=True)
+    kaggle_df.drop_duplicates(inplace=True)
+    kaggle_df.columns = ['sl', 'urls', 'category']
+
+    # List of categories per domain for multiple categorizations
+    domain_cate = dict()
+
+    for i in kaggle_df.index:
+        try:
+            url = tldextract.extract(kaggle_df['urls'][i])
+            if url.domain is None:
+                print(kaggle_df['urls'][i])
+
+            if url.domain not in domain_cate:
+                domain_cate[url.domain] = set()
+
+            domain_cate[url.domain].add(kaggle_df['category'][i])
+
+        except Exception:
+            traceback.print_exc()
+            print(kaggle_df.loc[i])
+
+    twitter_df = pd.read_csv('url_counts_from_bios.csv', header=None)
+    twitter_df.columns = ['domains', 'counts']
+    twitter_df['category'] = ''
+
+    for i in twitter_df.index:
+        if twitter_df['domains'][i] not in domain_cate:
+            cate = None
+        else:
+            cate = domain_cate[twitter_df['domains'][i]]
+
+        if cate is None:
+            cate = set('NaN')
+
+        twitter_df['category'].loc[i] = ','.join(cate)
+
+    twitter_df.to_csv('url_kaggle_classes.csv')
+
+
+
 def main():
     # parse_counts_log()
     # filter_unwanted_users()
     # user_info_parser()
     # user_set_generation()
     # user_bio_parser()
-    unique_user_bio_selection()
+    # unique_user_bio_selection()
     # users_bio_url_resolver()
     # users_bio_url_domains()
+    users_bio_url_domains_classification()
 
 
 if __name__ == '__main__':
