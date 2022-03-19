@@ -7,7 +7,7 @@ from flair.data import Sentence
 from flair.models import TextClassifier
 from nltk import word_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from transformers import pipeline
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
 from wordcloud import WordCloud
 
 
@@ -311,6 +311,83 @@ def users_bio_ed_distilbert():
                             verdict = 'surprise'
 
                 fout.write(f'{parts[0]},{sadness},{joy},{love},{anger},{fear},{surprise},{verdict}\n')
+
+            except Exception as e:
+                print(e)
+                print(line)
+
+
+def users_bio_ed_distilbert_goemotions():
+    """
+    using https://huggingface.co/joeddav/distilbert-base-uncased-go-emotions-student
+    student of models trained on GoEmotions dataset with 27 emotions
+
+    [[{"label":"admiration","score":0.03721676021814346},
+    {"label":"amusement","score":0.01585017889738083},
+    {"label":"anger","score":0.003236852353438735},
+    {"label":"annoyance","score":0.003161841770634055},
+    {"label":"approval","score":0.07673002034425736},
+    {"label":"caring","score":0.06162014231085777},
+    {"label":"confusion","score":0.004896118305623531},
+    {"label":"curiosity","score":0.021125035360455514},
+    {"label":"desire","score":0.03356267139315605},
+    {"label":"disappointment","score":0.0011842024978250266},
+    {"label":"disapproval","score":0.0027064187452197077},
+    {"label":"disgust","score":0.002020828425884247},
+    {"label":"embarrassment","score":0.0022175440099090339},
+    {"label":"excitement","score":0.051230840384960178},
+    {"label":"fear","score":0.0027683808002620937},
+    {"label":"gratitude","score":0.13742570579051972},
+    {"label":"grief","score":0.0030143226031214},
+    {"label":"joy","score":0.06514319777488709},
+    {"label":"love","score":0.014916658401489258},
+    {"label":"nervousness","score":0.006636080797761679},
+    {"label":"optimism","score":0.09592127799987793},
+    {"label":"pride","score":0.06627731025218964},
+    {"label":"realization","score":0.06447335332632065},
+    {"label":"relief","score":0.17632371187210084},
+    {"label":"remorse","score":0.006228619255125523},
+    {"label":"sadness","score":0.001663982286117971},
+    {"label":"surprise","score":0.028542600572109224},
+    {"label":"neutral","score":0.013905340805649758}]]
+    """
+
+    tokenizer = AutoTokenizer.from_pretrained("joeddav/distilbert-base-uncased-go-emotions-student")
+    # model = AutoModelForSequenceClassification.from_pretrained("joeddav/distilbert-base-uncased-go-emotions-student")
+    classifier = pipeline("text-classification", model='joeddav/distilbert-base-uncased-go-emotions-student',
+                          return_all_scores=True)
+    with open('words_with_emoji.txt', mode='r', encoding='utf8') as fin, open(
+            'users_bio_distilbert_goemotions.csv', mode='a') as fout:
+
+        fout.write('id,admiration,amusement,anger,annoyance,approval,'+\
+                   'caring,confusion,curiosity,desire,disappointment,disapproval,'+\
+                   'disgust,embarrassment,excitement,fear,gratitude,grief,joy,love,'+\
+                   'nervousness,optimism,pride,realization,relief,remorse,sadness,surprise,neutral,verdict\n')
+        lines = fin.readlines()
+        index = 0
+        total_lines = len(lines)
+        while index < total_lines:
+            line = lines[index]
+
+            try:
+                index += 1
+                parts = line.strip().split('\t')
+
+                if len(parts) == 1:
+                    continue
+
+                prediction = classifier(parts[1], )
+
+                verdict = ''
+                max_prob = 0
+                line = ','
+                for pred in prediction[0]:
+                    line += pred['score'] + ','
+                    if max_prob < pred['score']:
+                        max_prob = pred['score']
+                        verdict = pred['label']
+
+                fout.write(f'{parts[0]}{line}{verdict}\n')
 
             except Exception as e:
                 print(e)
