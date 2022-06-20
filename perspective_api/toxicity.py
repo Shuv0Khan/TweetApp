@@ -6,8 +6,8 @@ import regex as re
 from googleapiclient import discovery
 from tqdm.auto import tqdm
 
-IN_FILE_PATH = '..\\data\\user_bio_processed_for_perspective.tsv'
-OUT_FILE_PATH = '..\\data\\users_bio_perspective.csv'
+IN_FILE_PATH = '../data/user_bio_processed_for_perspective.tsv'
+OUT_FILE_PATH = '../data/users_bio_perspective.csv'
 API_KEY = 'AIzaSyDXnpQT0XpYwN4RMj4rOkXRCnkwAFY17Tg'
 
 client = discovery.build(
@@ -30,7 +30,8 @@ analyze_request = {
         'PROFANITY': {},
         'THREAT': {}
     },
-    'doNotStore': True
+    'doNotStore': True,
+    'languages': ['en']
 }
 
 
@@ -93,7 +94,6 @@ def run():
 
             # 1 req per second
             time.sleep(1)
-
 
 
 if __name__ == '__main__':
