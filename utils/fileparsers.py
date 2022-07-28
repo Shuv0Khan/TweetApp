@@ -1,10 +1,13 @@
+import os
 import traceback
 from collections import defaultdict
 
+import pandas as pd
 import requests
 import tldextract
+from nltk.tokenize import TweetTokenizer
 from pylab import *
-import pandas as pd
+
 
 # pd.options.plotting.backend = "plotly"
 
@@ -150,8 +153,8 @@ def user_set_generation():
 def user_bio_parser():
     with open("all_user_bios.csv", mode="r", encoding="utf8") as fin, open(
             "words_with_emoji.txt", mode="w", encoding="utf8") as fout1, open(
-            "hashtags.txt", mode="w", encoding="utf8") as fout2, open(
-            "urls.txt", mode="w", encoding="utf8") as fout3:
+        "hashtags.txt", mode="w", encoding="utf8") as fout2, open(
+        "urls.txt", mode="w", encoding="utf8") as fout3:
         users_wout_bio = 0
         session = requests.Session()
         for line in fin:
@@ -348,6 +351,156 @@ def users_bio_url_domains_classification():
     twitter_df.to_csv('url_kaggle_classes.csv')
 
 
+def replace_char(org, replace, in_file):
+    with open(in_file, mode='r', encoding='utf8') as fin, open('temp.dat', mode='w', encoding='utf8') as fout:
+        for line in fin:
+            line = line.replace(org, replace)
+            fout.write(line)
+
+    os.rename(in_file, f'{in_file}_{time.time()}')
+    os.replace('temp.dat', in_file)
+
+
+def tweet_parser():
+    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+
+    with open("../data/all_tweets.tsv", mode="r", encoding="utf8") as fin, open(
+            "../data/tweet_words_with_emoji.tsv", mode="w", encoding="utf8") as t_out, open(
+        "../data/tweet_hashtags.txt", mode="w", encoding="utf8") as h_out, open(
+        "../data/tweet_urls.txt", mode="w", encoding="utf8") as url_out:
+        empty_tweets = 0
+        for line in fin:
+            try:
+                parts = line.strip().split("\t")
+                if len(parts) == 1:
+                    empty_tweets += 1
+                    continue
+
+                line = parts[1].strip()
+
+                # Remove non-english characters
+                # source - https://www.geeksforgeeks.org/python-remove-non-english-characters-strings-from-list/
+                # line = re.sub("[^\u0000-\u05C0\u2100-\u214F]+", " ", line)
+
+                # Find and write links
+                match = re.search(r'https?:\S+', line)
+                while match is not None:
+                    url = line[match.start():match.end()]
+                    url_out.write(f'{url}\n')
+                    line = f'{line[0:match.start()]} {line[match.end():]}'
+                    match = re.search(r'https?:\S+', line)
+
+                # Remove Links
+                line = re.sub(r'https?:\S+', ' ', line)
+
+                # Write the tweet id
+                t_out.write(f'{parts[0]}\t')
+
+                # Tokenize with - lowercase, stripping handles and reducing len to 3 for repeated letters
+                words = tokenizer.tokenize(line)
+
+                hashtag_found = False
+                for word in words:
+                    if word.startswith("#"):
+                        # Keeping hashtags as words by removing '#'
+                        hashtag_found = True
+                        h_out.write(f'{word} ')
+                        word = word.replace('#', '')
+
+                    t_out.write(f'{word} ')
+
+                t_out.write("\n")
+
+                if hashtag_found:
+                    h_out.write("\n")
+
+            except Exception:
+                traceback.print_exc()
+                print(line)
+                exit(1)
+
+        print(f'empty tweets: {empty_tweets}')
+
+
+def tweet_distilbert_validation():
+    tweets = dict()
+    with open('../data/tweet_words_with_emoji.tsv', mode='r', encoding='utf8') as fin:
+        for line in fin:
+            parts = line.strip().split('\t')
+            if parts[0] not in tweets:
+                tweets[parts[0]] = dict([('count', 1), ('text', parts[1].strip())])
+            else:
+                tweets[parts[0]]['count'] += 1
+
+    retweet_count = 0
+    for [key, val] in tweets.items():
+        if val['count'] > 1:
+            retweet_count += val['count'] - 1
+
+    print(f'duplicate analysis = {retweet_count}')
+
+    with open('../data/tweet_distilbert.csv', mode='r', encoding='utf8') as fin:
+        for line in fin:
+            parts = line.strip().split(',')
+            if parts[0] in tweets:
+                tweets[parts[0]]['count'] -= 1
+
+    with open('../data/tweet_words_with_emoji_remaining.tsv', mode='w', encoding='utf8') as fout:
+        for [key, val] in tweets.items():
+            if val['count'] > 0:
+                for i in range(val['count']):
+                    fout.write(f'{key}\t{val["text"]}\n')
+
+
+def user_activity():
+    user_date = defaultdict(dict)
+    with open('../data/users_bio_distilbert.csv', mode='r', encoding='ISO-8859-1') as fin:
+        for line in fin:
+            if line.startswith('id'):
+                continue
+
+            parts = line.strip().split(',')
+
+            user_date[parts[0]] = dict(
+                positive=(parts[-1] in ['joy', 'love', 'surprise'])
+            )
+
+    positive = 0
+    negative = 0
+    for [k, v] in user_date.items():
+        if v['positive']:
+            positive += 1
+        else:
+            negative += 1
+
+    with open('../data/all_users_all_metrics.csv', mode='r', encoding='utf8') as fin:
+        for line in fin:
+            if line.startswith('id'):
+                continue
+
+            parts = line.strip().split(',')
+            if parts[0] in user_date:
+                try:
+                    if parts[0] in user_date:
+                        creation_date = datetime.datetime.strptime(parts[-3].strip().split('.')[0], '%Y-%m-%dT%H:%M:%S').date()
+                        today = datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date()
+                        user_date[parts[0]]['days'] = (today - creation_date).days
+                        user_date[parts[0]]['tweet_count'] = parts[5].strip()
+                except Exception:
+                    print(line)
+                    exit()
+
+    with open('../data/all_unique_users_active_days.csv', mode='w', encoding='utf8') as fout:
+        fout.write('id,is_positive,active_days,tweet_count\n')
+        line_no = 1
+        for [k, v] in user_date.items():
+            line_no += 1
+            try:
+                fout.write(f'{k},{1 if v["positive"] else 0},{v["days"]},{v["tweet_count"]}\n')
+            except Exception:
+                print(f'{k}   {str(v)}   {line_no}')
+
+
 
 def main():
     # parse_counts_log()
@@ -358,8 +511,14 @@ def main():
     # unique_user_bio_selection()
     # users_bio_url_resolver()
     # users_bio_url_domains()
-    users_bio_url_domains_classification()
+    # users_bio_url_domains_classification()
+    # replace_char(' ’ ', '’', '../data/tweet_words_with_emoji.tsv')
+    # tweet_parser()
+    tweet_distilbert_validation()
+    # user_activity()
 
 
 if __name__ == '__main__':
+    print('starting....')
     main()
+    print('done')
