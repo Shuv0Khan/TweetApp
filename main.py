@@ -10,6 +10,7 @@ from utils import constants
 from utils import dbparser
 
 
+
 def setup_logging(filename):
     logging.basicConfig(filename=filename,
                         format='%(asctime)s::%(levelname)s: %(message)s',
