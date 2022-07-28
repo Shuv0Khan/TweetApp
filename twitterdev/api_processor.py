@@ -201,7 +201,7 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 46834
+        id_index = 265763
         end_index = 300000
         while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
@@ -260,8 +260,12 @@ class ApiProcessor:
 
             id_index += 1
 
-    def get_followings_through_relay(self):
-        url = 'http://35.39.45.120:5000/relay'
+    def get_followings_through_relay(self, relay_endpoint):
+        if relay_endpoint == 'lab2':
+            url = 'http://35.39.45.119:5000/relay'
+        elif relay_endpoint == 'lab3':
+            url = 'http://35.39.45.120:5000/relay'
+
         collection_name = 'followings'
 
         file = open('userset2.csv', mode="r")
@@ -273,8 +277,9 @@ class ApiProcessor:
             user_id = line.strip().split(",")[0]
             user_ids.append(user_id)
 
-        id_index = 317138
-        end_index = 900000
+        id_index = 900000
+        # end_index = 900000
+        end_index = 1049733
         while id_index < end_index:
             query_tuple_list = [('user_id', str(user_ids[id_index])),
                                 ('count', '200'),
