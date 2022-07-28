@@ -7,6 +7,10 @@ from collections import defaultdict
 
 
 def get_all_tweets():
+    """
+    Demo of how to connect with mongoDB and iterate through the
+    collections.
+    """
     mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
     collections = mongodb.list_collection_names()
     for collection in collections:
@@ -304,6 +308,36 @@ def neo_following_edges_cmd_gen():
         if total > limit:
             break
 
+def get_all_tweets_and_metrics():
+    mongodb = mongodb_processor.MongoDBProcessor(constants.mongodb_url, constants.mongodb_db_name).my_db
+    collections = mongodb.list_collection_names()
+    collections.sort()
+    with open('../data/all_tweets.tsv', mode='w', encoding='utf8') as tout, open(
+            '../data/all_tweet_metrics.csv', mode='w', encoding='utf8') as tmout:
+        tmout.write(f'id,author_id,retweets,replies,likes,quotes,created_at\n')
+        for collection in collections:
+            try:
+                int(collection)
+            except Exception:
+                continue
+
+            print("*****************************************************************************")
+            print(f"******** Collection: {collection} *******************************************")
+            print("*****************************************************************************")
+            # cursor = mongodb[collection].find({}, {"data.text": 1})
+            cursor = mongodb[collection].find({}, {'data': 1})
+
+            for data_list in cursor:
+
+                for tweet_list in data_list["data"]:
+                    # print(tweet_list["text"])
+                    tweet = tweet_list['text'].strip()
+                    tweet = tweet.replace('\t', ' ')
+                    tweet = tweet.replace('\n', ' ')
+                    tweet = tweet.replace('\r', ' ')
+                    tout.write(f'"{tweet_list["id"]}"\t{tweet}\t\n')
+                    tmout.write(f'"{tweet_list["id"]}",{tweet_list["author_id"]},{tweet_list["public_metrics"]["retweet_count"]},{tweet_list["public_metrics"]["reply_count"]},{tweet_list["public_metrics"]["like_count"]},{tweet_list["public_metrics"]["quote_count"]},"{tweet_list["created_at"]}"\n')
+
 
 def main():
     logging.basicConfig(filename='following_cypher.cql',
@@ -311,10 +345,11 @@ def main():
                         level=logging.DEBUG)
 
     # get_all_unique_tweet_author_ids()
-    get_all_user_metrics()
+    # get_all_user_metrics()
     # neo_user_info_transfer()
     # get_all_users_bio()
-    neo_following_edges_cmd_gen()
+    # neo_following_edges_cmd_gen()
+    get_all_tweets_and_metrics()
 
 
 if __name__ == '__main__':
