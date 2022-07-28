@@ -1,20 +1,17 @@
 import logging
+import smtplib
+import ssl
 import time
 import traceback
 
-from utils import dbparser
-from twitterdev import search_tweet_interface
 from twitterdev import api_processor
+from twitterdev import search_tweet_interface
 from utils import constants
-import smtplib, ssl
+from utils import dbparser
 
 
-def main(choice):
-    if choice is None:
-        print("Please provide the appropriate choice of operation.")
-        return
-
-    logging.basicConfig(filename='TwitterApp.log',
+def setup_logging(filename):
+    logging.basicConfig(filename=filename,
                         format='%(asctime)s::%(levelname)s: %(message)s',
                         datefmt='%m/%d/%Y %I:%M:%S %p',
                         level=logging.DEBUG)
@@ -29,10 +26,18 @@ def main(choice):
     logging.debug("negative_keywords = {}".format(constants.negative_keywords))
     logging.debug(f"negative key - {len(constants.negative_keywords)}")
 
-    logging.debug(f"\n***************************\nSelected Operation: {choice}\n***************************\n")
+
+def main(argv):
+
+    if len(argv) < 2:
+        print("Please provide the appropriate choice of operation.")
+        return
+
+    choice = argv[1]
+    print(f"\n***************************\nSelected Operation: {choice}\n***************************\n")
 
     if choice == 'test':
-        logging.debug("Choice captured successfully")
+        print("Choice captured successfully")
 
     elif choice == 'test_email':
         raise Exception("Testing email")
@@ -41,15 +46,20 @@ def main(choice):
         api = api_processor.ApiProcessor()
 
         if choice == 'api_get_followers':
+            setup_logging('TwitterApp.log')
             api.get_followers()
         elif choice == 'api_get_followings':
+            setup_logging('TwitterApp.log')
             api.get_followings()
         elif choice == 'api_get_through_relay':
-            api.get_followings_through_relay()
+            setup_logging(f'TwitterApp_relay_{argv[2]}.log')
+            api.get_followings_through_relay(argv[2])
         elif choice == 'api_twitterdev':
+            setup_logging('TwitterApp.log')
             api.start_twitterdev()
 
     elif choice.startswith('full'):
+        setup_logging('TwitterApp.log')
         full_archive_search = search_tweet_interface.FullArchiveSearch()
         if choice == 'full_get':
             full_archive_search.do_get()
@@ -57,6 +67,7 @@ def main(choice):
             full_archive_search.do_count()
 
     elif choice.startswith('db'):
+        setup_logging('TwitterApp.log')
         if choice == 'db_all_tweets':
             dbparser.get_all_tweets()
 
@@ -64,12 +75,8 @@ def main(choice):
 if __name__ == '__main__':
     from sys import argv
 
-    choice = None
-    if len(argv) == 2:
-        choice = argv[1]
-
     try:
-        main(choice)
+        main(argv)
     except Exception as e:
         traceback.print_exc()
         logging.error(e)
