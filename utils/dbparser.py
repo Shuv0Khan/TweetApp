@@ -153,7 +153,7 @@ def get_all_users_bio():
     collection = mongodb.get_collection(name='users_info')
     cursor = mongodb['users_info'].find({}, {'data.id': 1, 'data.description': 1, 'data.entities': 1, '_id': 0})
 
-    with open("users_bio.csv", "w") as out:
+    with open("all_user_bios.csv", "w") as out:
         for data_list in cursor:
             for key in data_list:
                 for data in data_list[key]:
