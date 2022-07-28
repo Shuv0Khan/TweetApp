@@ -3,11 +3,14 @@ from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import nltk
+import pandas as pd
+# pd.options.plotting.backend = "plotly"
+# pd.options.display.max_colwidth=160
 from flair.data import Sentence
 from flair.models import TextClassifier
 from nltk import word_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+from transformers import pipeline, AutoTokenizer
 from wordcloud import WordCloud
 
 
@@ -22,13 +25,14 @@ def data_plotter(filepath, column):
 
         d_points.sort()
         print(f"Max = {d_points[len(d_points) - 1]}")
+        y_points = d_points
         # x_points = [i for i in range(1, len(d_points) + 1)]
         # plt.plot(x_points, d_points)
         # plt.show()
         # return
 
-        y_points = [i for i in d_points if 10000 > i > 0]
-        y_points.sort()
+        # y_points = [i for i in d_points if 10000 > i > 0]
+        # y_points.sort()
         # x_points = [i for i in range(1, len(y_points) + 1)]
         # plt.plot(x_points, y_points)
         # plt.show()
@@ -41,7 +45,7 @@ def data_plotter(filepath, column):
         #     y_points[i] = ((y_points[i] - y_min) / (y_max - y_min))
 
         # categorize per 100 followers into one group
-        group_lim = 100
+        group_lim = inc = 10000
         total_users = len(y_points)
         print(f"total users = {total_users}")
         cate_y_points = []
@@ -53,7 +57,7 @@ def data_plotter(filepath, column):
                 # normalizing to percentage of users
                 cate_y_points.append(count / total_users * 100.0)
                 # count = 0 # commented as I'm doing cumulative sum.
-                group_lim += 100
+                group_lim += inc
 
         # column sum for cdf
         # sum = 0
@@ -68,10 +72,10 @@ def data_plotter(filepath, column):
         # plt.plot(x_points, y_cumsum, "r--")
         plt.show()
 
-        count = 100
+        count = inc
         for i in cate_y_points:
             print(f"<{count}, {i}%")
-            count += 100
+            count += inc
 
 
 def users_bio_word_cloud():
@@ -142,7 +146,7 @@ def users_bio_word_cloud():
 def users_bio_sentiment_analysis():
     with open('users_bio.csv', mode='r', encoding='utf8') as fin_users, open(
             'words.txt', mode='r', encoding='utf8') as fin_words, open(
-            'sentiments.txt', mode='w') as fout_sent:
+        'sentiments.txt', mode='w') as fout_sent:
         # users = fin_users.readlines()
         bios = fin_words.readlines()
         sia = SentimentIntensityAnalyzer()
@@ -246,6 +250,14 @@ def users_bio_sentiment_pie():
 
 
 def users_bio_ed_distilbert():
+    ed_distilbert('words_with_emoji.txt', 'users_bio_distilbert.csv')
+
+
+def tweet_ed_distilbert():
+    ed_distilbert('../data/tweet_words_with_emoji_remaining.tsv', '../data/tweet_distilbert.csv')
+
+
+def ed_distilbert(in_file, out_file):
     """
     using https://huggingface.co/bhadresh-savani/distilbert-base-uncased-emotion
     with the emojis but removing hashtags, mentions, and urls.
@@ -253,15 +265,16 @@ def users_bio_ed_distilbert():
 
     classifier = pipeline("text-classification", model='bhadresh-savani/distilbert-base-uncased-emotion',
                           return_all_scores=True)
-    with open('words_with_emoji.txt', mode='r', encoding='utf8') as fin, open(
-            'users_bio_distilbert.csv', mode='a') as fout:
+    with open(in_file, mode='r', encoding='utf8') as fin, open(out_file, mode='a', encoding='utf8') as fout:
 
         # fout.write('id,sadness,joy,love,anger,fear,surprise,verdict\n')
-        lines = fin.readlines()
-        index = 1089873
-        total_lines = len(lines)
-        while index < total_lines:
-            line = lines[index]
+
+        index = 0
+        current_line = 0
+        for line in fin:
+            if current_line < index:
+                current_line += 1
+                continue
 
             try:
                 index += 1
@@ -315,6 +328,7 @@ def users_bio_ed_distilbert():
             except Exception as e:
                 print(e)
                 print(line)
+                exit(index)
 
 
 def users_bio_ed_distilbert_goemotions():
@@ -359,9 +373,9 @@ def users_bio_ed_distilbert_goemotions():
     with open('words_with_emoji.txt', mode='r', encoding='utf8') as fin, open(
             'users_bio_distilbert_goemotions.csv', mode='a') as fout:
 
-        fout.write('id,admiration,amusement,anger,annoyance,approval,'+\
-                   'caring,confusion,curiosity,desire,disappointment,disapproval,'+\
-                   'disgust,embarrassment,excitement,fear,gratitude,grief,joy,love,'+\
+        fout.write('id,admiration,amusement,anger,annoyance,approval,' + \
+                   'caring,confusion,curiosity,desire,disappointment,disapproval,' + \
+                   'disgust,embarrassment,excitement,fear,gratitude,grief,joy,love,' + \
                    'nervousness,optimism,pride,realization,relief,remorse,sadness,surprise,neutral,verdict\n')
         lines = fin.readlines()
         index = 0
@@ -422,13 +436,43 @@ def user_bio_graph_distilbert():
     plt.bar
 
 
+def bar_chart():
+    with open('..\\data\\users_bio_distilbert.csv', mode='r') as fin:
+        lines = fin.readlines()
+        counts = defaultdict(dict)
+        cols = lines[0].strip().split(',')[1:]
+
+        for i in range(1, len(lines), 1):
+            parts = lines[i].strip().split(',')[1:7]
+            for j in range(len(parts)):
+                val = float(parts[j])
+                if 'below' not in counts[cols[j]]:
+                    counts[cols[j]]['below'] = 0
+                    counts[cols[j]]['above'] = 0
+
+                if val < 0.5:
+                    counts[cols[j]]['below'] -= 1
+                else:
+                    counts[cols[j]]['above'] += 1
+
+        print(counts)
+
+        df = pd.DataFrame(counts)
+        df = df.transpose()
+        df.plot.bar(stacked=True)
+        plt.show()
+
+
 def main():
-    # data_plotter("following.csv", 2)
+    # data_plotter("../data/all_following.c sv", 2)
     # users_bio_word_cloud()
     # users_bio_sentiment_analysis()
     # users_bio_sentiment_pie()
-    users_bio_ed_distilbert()
+    # users_bio_ed_distilbert()
+    # bar_chart()
+    tweet_ed_distilbert()
 
 
 if __name__ == '__main__':
     main()
+    print('done')
