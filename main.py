@@ -10,7 +10,6 @@ from utils import constants
 from utils import dbparser
 
 
-
 def setup_logging(filename):
     logging.basicConfig(filename=filename,
                         format='%(asctime)s::%(levelname)s: %(message)s',
@@ -29,7 +28,6 @@ def setup_logging(filename):
 
 
 def main(argv):
-
     if len(argv) < 2:
         print("Please provide the appropriate choice of operation.")
         return
