@@ -1,3 +1,5 @@
+import math
+import re
 import traceback
 from collections import defaultdict
 
@@ -8,10 +10,16 @@ import pandas as pd
 # pd.options.display.max_colwidth=160
 from flair.data import Sentence
 from flair.models import TextClassifier
-from nltk import word_tokenize
+from nltk import word_tokenize, TweetTokenizer
+from nltk.util import ngrams
+from collections import Counter
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from transformers import pipeline, AutoTokenizer
 from wordcloud import WordCloud
+from consolemenu import SelectionMenu
+from bertopic import BERTopic
+import emoji
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 def data_plotter(filepath, column):
@@ -408,6 +416,203 @@ def users_bio_ed_distilbert_goemotions():
                 print(line)
 
 
+def tweet_topic_modeling():
+    topic_model = BERTopic(language="english", calculate_probabilities=True, verbose=True)
+    monthly_tweets = defaultdict(list)
+    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+    stopWords = set(nltk.corpus.stopwords.words('english'))
+    lemmatizer = nltk.WordNetLemmatizer()
+
+    with open('../data/all_tweets_during_peak_words_with_emoji.tsv', mode='r', encoding='utf8') as fin:
+        empty_twts = 0
+        for line in fin:
+            parts = line.strip().split('\t')
+            if len(parts) < 3:
+                empty_twts += 1
+                continue
+
+            twt = parts[2].strip()
+            twt = emoji.replace_emoji(twt, replace='').strip()
+
+            if len(twt) == 0:
+                empty_twts += 1
+                continue
+
+            monthly_tweets[parts[1]].append(twt)
+
+    print('Tweets loaded by peak months')
+    print(f'Empty Tweets: {empty_twts}')
+
+    model_for_months = ['2010-10', '2012-10', '2013-03', '2013-08', '2015-10', '2016-11',
+                        '2017-01', '2017-03', '2018-01', '2018-06', '2018-10', '2019-01',
+                        '2019-06', '2019-10', '2020-06', '2020-10']
+    docs = []
+    # for key in model_for_months:
+    #     twt = '\n'.join(monthly_tweets.get(key))
+    #     docs.append(twt)
+
+    tweets = monthly_tweets.get('2010-10')
+
+    for i in range(len(tweets)):
+        twt = tweets[i]
+        twt = re.sub(r'[^A-Za-z0-9]+', ' ', twt)
+        words = tokenizer.tokenize(twt)
+        words = [w for w in words if w not in stopWords]
+        words = [lemmatizer.lemmatize(w) for w in words]
+        twt = ' '.join(words)
+
+        tweets[i] = twt
+
+    step_size = math.ceil(len(tweets) / 30)
+
+    for i in range(step_size, len(tweets), step_size):
+        docs.append('\n'.join(tweets[(i - step_size):step_size]))
+
+    # single_doc = '\n'.join(docs)
+
+    print('Tweets appended into docs, one for each month.')
+    topics, probs = topic_model.fit_transform(docs)
+
+    print('Fit Transform done. Saving results.')
+    with open('../data/all_tweets_topics_and_probs.csv', mode='w', encoding='utf8') as fout:
+        for i in range(len(model_for_months)):
+            fout.write(f'{model_for_months[i]},{topics[i]}, {",".join(probs[i])}\n')
+
+    print('Results saved.')
+
+    print('Saving topic frequencies.')
+    freq = topic_model.get_topic_info();
+    freq.to_csv('../data/all_tweets_topics_freq.csv')
+    print('Results saved.')
+
+    print('Saving Frequent topics visualization.')
+    freq_topics = pd.DataFrame(topic_model.get_topic(0), columns=['Topic', 'Prob'])
+    freq_topics.to_csv('../data/all_tweets_topics_frequent.csv')
+    print('Done')
+
+    print('Saving Topics Distribution Map visualization.')
+    fig = topic_model.visualize_topics()
+    fig.write_html('C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_dist_map.html')
+    print('Done')
+
+    print('Saving Topics Probability distributions by months visualization.')
+    for i in range(len(probs)):
+        fig = topic_model.visualize_distribution(probs[i], min_probability=0.015)
+        fig.write_html(f'C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_prob_dist_{model_for_months[i]}.html')
+    print('Done')
+
+    print('Saving topics hierarchical clustering visualization.')
+    fig = topic_model.visualize_hierarchy(top_n_topics=50)
+    fig.write_html('C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_h_clust.html')
+    print('Done')
+
+    print('Saving topics word scores visualization.')
+    fig = topic_model.visualize_barchart(top_n_topics=10)
+    fig.write_html('C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_word_scores.html')
+    print('Done')
+
+    print('Saving topics overtime visualization.')
+    topics_over_time = topic_model.topics_over_time(docs, topics, model_for_months, nr_bins=20)
+    fig = topic_model.visualize_topics_over_time(topics_over_time, top_n_topics=10)
+    fig.write_html('C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_overtime.html')
+    print('Done')
+
+
+def tweet_ngrams():
+    monthly_tweets = defaultdict(list)
+    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+    stopWords = set(nltk.corpus.stopwords.words('english'))
+
+    with open('../data/all_tweets_during_peak_words_with_emoji.tsv', mode='r', encoding='utf8') as fin:
+        empty_twts = 0
+        for line in fin:
+            parts = line.strip().split('\t')
+            if len(parts) < 3:
+                empty_twts += 1
+                continue
+
+            twt = parts[2].strip()
+            twt = emoji.replace_emoji(twt, replace='').strip()
+
+            if len(twt) == 0:
+                empty_twts += 1
+                continue
+
+            monthly_tweets[parts[1]].append(twt)
+
+    for d_key, d_val in monthly_tweets.items():
+        doc = ' '.join(d_val)
+
+        doc = re.sub(r'[^A-Za-z0-9]+', ' ', doc)
+        words = tokenizer.tokenize(doc)
+        words = [w for w in words if w not in stopWords]
+
+        unigrams = Counter(ngrams(words, 1))
+        bigrams = Counter(ngrams(words, 2))
+
+        with open(f'../data/all_tweets_unigrams_{d_key}.csv', mode='w', encoding='utf8') as fout:
+            for u_key, u_val in sorted(unigrams.items(), key=lambda x: x[1], reverse=True):
+                fout.write(f'{u_key[0]}, {u_val}\n')
+
+        with open(f'../data/all_tweets_bigrams_{d_key}.csv', mode='w', encoding='utf8') as fout:
+            for u_key, u_val in sorted(bigrams.items(), key=lambda x: x[1], reverse=True):
+                fout.write(f'"{u_key[0]} {u_key[1]}", {u_val}\n')
+
+
+def tweet_tfidf():
+    monthly_tweets = defaultdict(list)
+    tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
+    stopWords = set(nltk.corpus.stopwords.words('english'))
+    lemmatizer = nltk.WordNetLemmatizer()
+
+    with open('../data/all_tweets_during_peak_words_with_emoji.tsv', mode='r', encoding='utf8') as fin:
+        empty_twts = 0
+        for line in fin:
+            parts = line.strip().split('\t')
+            if len(parts) < 3:
+                empty_twts += 1
+                continue
+
+            twt = parts[2].strip()
+            twt = emoji.replace_emoji(twt, replace='').strip()
+
+            if len(twt) == 0:
+                empty_twts += 1
+                continue
+
+            monthly_tweets[parts[1]].append(twt)
+
+    docs = []
+    columns = []
+    for d_key, d_val in monthly_tweets.items():
+        doc = ' '.join(d_val)
+        doc = re.sub(r'[^A-Za-z0-9]+', ' ', doc)
+        words = tokenizer.tokenize(doc)
+        words = [w for w in words if w not in stopWords]
+        words = [lemmatizer.lemmatize(w) for w in words]
+        doc = ' '.join(words)
+
+        docs.append(doc)
+        columns.append(d_key)
+
+    vectorizer = TfidfVectorizer()
+
+    vectors = vectorizer.fit_transform(docs)
+
+    feature_names = vectorizer.get_feature_names()
+
+    dense = vectors.todense()
+
+    denselist = dense.tolist()
+
+    df = pd.DataFrame(denselist, columns=feature_names, index=columns)
+
+    for i_key in df.index:
+        pdf = df.loc[i_key, ]
+        pdf.sort_values(ascending=False, inplace=True)
+        pdf.to_csv(f'../data/all_tweets_tfidf_{i_key}.csv')
+
+
 def user_bio_graph_distilbert():
     sadness = joy = love = anger = fear = surprise = 0
     with open('users_bio_distilbert.csv', mode='r') as fin:
@@ -463,16 +668,47 @@ def bar_chart():
         plt.show()
 
 
-def main():
-    # data_plotter("../data/all_following.c sv", 2)
-    # users_bio_word_cloud()
-    # users_bio_sentiment_analysis()
-    # users_bio_sentiment_pie()
-    # users_bio_ed_distilbert()
-    # bar_chart()
-    tweet_ed_distilbert()
+def menu():
+    options = [
+        'Data Plotter',
+        'Users Bio Word Cloud',
+        'Users Bio Sentiment Analysis',
+        'Users Bio Sentiment Pie',
+        'Users Bio ED DistilBert',
+        'Bar Chart',
+        'Tweet ED DistilBert',
+        'Tweet Topic Modeling',
+        'Tweet NGrams',
+        'Tweet TF-IDF'
+    ]
+    m = SelectionMenu(options, "Data Analysis Options")
+    m.show()
+    selection = m.selected_option
+
+    if selection == 0:
+        data_plotter("../data/all_following.c sv", 2)
+    elif selection == 1:
+        users_bio_word_cloud()
+    elif selection == 2:
+        users_bio_sentiment_analysis()
+    elif selection == 3:
+        users_bio_sentiment_pie()
+    elif selection == 4:
+        users_bio_ed_distilbert()
+    elif selection == 5:
+        bar_chart()
+    elif selection == 6:
+        tweet_ed_distilbert()
+    elif selection == 7:
+        tweet_topic_modeling()
+    elif selection == 8:
+        tweet_ngrams()
+    elif selection == 9:
+        tweet_tfidf()
+    else:
+        exit(selection)
 
 
 if __name__ == '__main__':
-    main()
+    menu()
     print('done')
