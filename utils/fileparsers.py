@@ -1,12 +1,15 @@
-import os
 import traceback
 from collections import defaultdict
 
 import pandas as pd
 import requests
 import tldextract
+from consolemenu import SelectionMenu
 from nltk.tokenize import TweetTokenizer
 from pylab import *
+from tqdm import tqdm
+import constants
+import os
 
 
 # pd.options.plotting.backend = "plotly"
@@ -353,7 +356,7 @@ def users_bio_url_domains_classification():
 
 def replace_char(org, replace, in_file):
     with open(in_file, mode='r', encoding='utf8') as fin, open('temp.dat', mode='w', encoding='utf8') as fout:
-        for line in fin:
+        for line in tqdm(fin):
             line = line.replace(org, replace)
             fout.write(line)
 
@@ -364,12 +367,20 @@ def replace_char(org, replace, in_file):
 def tweet_parser():
     tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
 
+    # hashtags = defaultdict(int)
+    # for tag in constants.positive_hashtags:
+    #     hashtags[str.lower(tag)] = 1
+    #
+    # for tag in constants.negative_hashtags:
+    #     hashtags[str.lower(tag)] = 1
+    #
+
     with open("../data/all_tweets.tsv", mode="r", encoding="utf8") as fin, open(
-            "../data/tweet_words_with_emoji.tsv", mode="w", encoding="utf8") as t_out, open(
-        "../data/tweet_hashtags.txt", mode="w", encoding="utf8") as h_out, open(
-        "../data/tweet_urls.txt", mode="w", encoding="utf8") as url_out:
+            "../data/all_tweets_words_with_emoji.tsv", mode="w", encoding="utf8") as t_out, open(
+        "../data/all_tweets_hashtags.txt", mode="w", encoding="utf8") as h_out, open(
+        "../data/all_tweets_urls.txt", mode="w", encoding="utf8") as url_out:
         empty_tweets = 0
-        for line in fin:
+        for line in tqdm(fin):
             try:
                 parts = line.strip().split("\t")
                 if len(parts) == 1:
@@ -405,6 +416,11 @@ def tweet_parser():
                         # Keeping hashtags as words by removing '#'
                         hashtag_found = True
                         h_out.write(f'{word} ')
+
+                        # Remove hashtags that were used to retrieve the tweets
+                        # if word in hashtags:
+                        #     continue
+
                         word = word.replace('#', '')
 
                     t_out.write(f'{word} ')
@@ -452,6 +468,64 @@ def tweet_distilbert_validation():
                     fout.write(f'{key}\t{val["text"]}\n')
 
 
+def tweets_fix_tsv_issues():
+    with open('../data/all_tweets.tsv', mode='r', encoding='utf8') as fin:
+        lines = fin.readlines()
+        issue_count = 0
+
+        for i in range(len(lines)):
+            parts = lines[i].strip().split('\t')
+            if len(parts) != 2:
+                issue_count += 1
+
+        print(f'Total Issues found: {issue_count}')
+
+
+def tweets_during_peaks():
+    peak_months = defaultdict()
+    with open('../data/all_tweets_detected_peaks.csv', mode='r', encoding='utf8') as fin:
+        for line in fin:
+            parts = line.strip().split(',')
+            peak_months[parts[1]] = []
+
+    pbar = tqdm(total=8581628)
+    with open('../data/all_tweet_metrics.csv', mode='r', encoding='utf8') as fin:
+        count = 0
+        index = 0
+        for line in fin:
+            parts = line.strip().split(',')
+            date_str = parts[-1]
+            year_month = date_str[1:8]
+
+            if year_month in peak_months:
+                peak_months[year_month].append(index)
+                count += 1
+
+            index += 1
+            pbar.update(index)
+
+    print(f'\nTotal Tweets selected: {count}')
+
+    with open('../data/all_tweets.tsv', mode='r', encoding='utf8') as fin, open(
+            '../data/all_tweets_during_peak.tsv', mode='w', encoding='utf8') as fout:
+        lines = fin.readlines()
+        pbar = tqdm(total=count)
+        count = 0
+
+        for d_key, d_val in peak_months.items():
+            for i in d_val:
+                try:
+                    parts = lines[i].strip().split('\t')
+                    fout.write(f'{parts[0]}\t{d_key}\t{parts[1]}\n')
+
+                    count += 1
+                    pbar.update(count)
+                except Exception as e:
+                    # traceback.print_stack(e)
+                    print(f'For line - {i}: {lines[i]}')
+                    exit(i)
+
+
 def user_activity():
     user_date = defaultdict(dict)
     with open('../data/users_bio_distilbert.csv', mode='r', encoding='ISO-8859-1') as fin:
@@ -482,7 +556,8 @@ def user_activity():
             if parts[0] in user_date:
                 try:
                     if parts[0] in user_date:
-                        creation_date = datetime.datetime.strptime(parts[-3].strip().split('.')[0], '%Y-%m-%dT%H:%M:%S').date()
+                        creation_date = datetime.datetime.strptime(parts[-3].strip().split('.')[0],
+                                                                   '%Y-%m-%dT%H:%M:%S').date()
                         today = datetime.datetime.strptime('2020-12-31', '%Y-%m-%d').date()
                         user_date[parts[0]]['days'] = (today - creation_date).days
                         user_date[parts[0]]['tweet_count'] = parts[5].strip()
@@ -501,24 +576,63 @@ def user_activity():
                 print(f'{k}   {str(v)}   {line_no}')
 
 
+def menu():
+    options = [
+        'Parse Counts Log',
+        'Filter Unwanted Users',
+        'User Info Parser',
+        'User Set Generation',
+        'User Bio Parser',
+        'Unique User Bio Selection',
+        'Users Bio URL Resolver',
+        'Users Bio URL Domains',
+        'Users Bio URL Domains Classification',
+        'Replace Char',
+        'Tweet Parser',
+        'Tweet DistilBert Validation',
+        'User Activity',
+        'Tweets During Peaks Parsing',
+        'Tweets Fix TSV Issues',
+    ]
+    m = SelectionMenu(options, "File Parsing Options")
+    m.show()
+    selection = m.selected_option
 
-def main():
-    # parse_counts_log()
-    # filter_unwanted_users()
-    # user_info_parser()
-    # user_set_generation()
-    # user_bio_parser()
-    # unique_user_bio_selection()
-    # users_bio_url_resolver()
-    # users_bio_url_domains()
-    # users_bio_url_domains_classification()
-    # replace_char(' ’ ', '’', '../data/tweet_words_with_emoji.tsv')
-    # tweet_parser()
-    tweet_distilbert_validation()
-    # user_activity()
+    if selection == 0:
+        parse_counts_log()
+    elif selection == 1:
+        filter_unwanted_users()
+    elif selection == 2:
+        user_info_parser()
+    elif selection == 3:
+        user_set_generation()
+    elif selection == 4:
+        user_bio_parser()
+    elif selection == 5:
+        unique_user_bio_selection()
+    elif selection == 6:
+        users_bio_url_resolver()
+    elif selection == 7:
+        users_bio_url_domains()
+    elif selection == 8:
+        users_bio_url_domains_classification()
+    elif selection == 9:
+        replace_char(' ’ ', '’', '../data/all_tweets_during_peak_words_with_emoji.tsv')
+    elif selection == 10:
+        tweet_parser()
+    elif selection == 11:
+        tweet_distilbert_validation()
+    elif selection == 12:
+        user_activity()
+    elif selection == 13:
+        tweets_during_peaks()
+    elif selection == 14:
+        tweets_fix_tsv_issues()
+    else:
+        exit(selection)
 
 
 if __name__ == '__main__':
     print('starting....')
-    main()
+    menu()
     print('done')
