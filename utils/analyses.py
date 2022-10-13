@@ -6,6 +6,7 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import nltk
 import pandas as pd
+import numpy as np
 # pd.options.plotting.backend = "plotly"
 # pd.options.display.max_colwidth=160
 from flair.data import Sentence
@@ -262,7 +263,7 @@ def users_bio_ed_distilbert():
 
 
 def tweet_ed_distilbert():
-    ed_distilbert('../data/tweet_words_with_emoji_remaining.tsv', '../data/tweet_distilbert.csv')
+    ed_distilbert('../data/all_tweets_words_with_emoji_remaining.tsv', '../data/all_tweets_distilbert.csv')
 
 
 def ed_distilbert(in_file, out_file):
@@ -285,7 +286,7 @@ def ed_distilbert(in_file, out_file):
                 continue
 
             try:
-                index += 1
+                # index += 1
                 parts = line.strip().split('\t')
 
                 if len(parts) == 1:
@@ -498,7 +499,8 @@ def tweet_topic_modeling():
     print('Saving Topics Probability distributions by months visualization.')
     for i in range(len(probs)):
         fig = topic_model.visualize_distribution(probs[i], min_probability=0.015)
-        fig.write_html(f'C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_prob_dist_{model_for_months[i]}.html')
+        fig.write_html(
+            f'C:/Users/shuvo/Workspace/PyCharm/TweetApp/data/all_tweets_topics_prob_dist_{model_for_months[i]}.html')
     print('Done')
 
     print('Saving topics hierarchical clustering visualization.')
@@ -519,44 +521,61 @@ def tweet_topic_modeling():
 
 
 def tweet_ngrams():
+    # find_ngrams('../data/all_tweets_during_peak_words_with_emoji.tsv', [1, 2], 'all_tweets')
+    find_ngrams('../data/all_tweets_neg_emo_words_with_emoji.tsv', [2], 'all_tweets')
+
+
+def find_ngrams(word_filepath, n, out_file_prefix):
     monthly_tweets = defaultdict(list)
     tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True, reduce_len=True)
     stopWords = set(nltk.corpus.stopwords.words('english'))
 
-    with open('../data/all_tweets_during_peak_words_with_emoji.tsv', mode='r', encoding='utf8') as fin:
+    # with open('../data/all_tweets_during_peak_words_with_emoji.tsv', mode='r', encoding='utf8') as fin:
+    with open(word_filepath, mode='r', encoding='utf8') as fin:
         empty_twts = 0
         for line in fin:
             parts = line.strip().split('\t')
-            if len(parts) < 3:
+            if len(parts) < 2:
                 empty_twts += 1
                 continue
 
-            twt = parts[2].strip()
+            twt = parts[1].strip()
             twt = emoji.replace_emoji(twt, replace='').strip()
 
             if len(twt) == 0:
                 empty_twts += 1
                 continue
 
-            monthly_tweets[parts[1]].append(twt)
+            monthly_tweets['tweets'].append(twt)
 
-    for d_key, d_val in monthly_tweets.items():
-        doc = ' '.join(d_val)
 
-        doc = re.sub(r'[^A-Za-z0-9]+', ' ', doc)
-        words = tokenizer.tokenize(doc)
-        words = [w for w in words if w not in stopWords]
+    # for d_key, d_val in monthly_tweets.items():
+    #     doc = ' '.join(d_val)
+    #
+    #     doc = re.sub(r'[^A-Za-z0-9]+', ' ', doc)
+    #     words = tokenizer.tokenize(doc)
+    #     #words = [w for w in words if w not in stopWords]
+    #
+    #     all_words.extend(words)
+    #
+    #     for i in n:
+    #         n_grams = Counter(ngrams(words, i))
+    #
+    #         with open(f'../data/{out_file_prefix}_{i}grams_{d_key}.csv', mode='w', encoding='utf8') as fout:
+    #             for u_key, u_val in sorted(n_grams.items(), key=lambda x: x[1], reverse=True):
+    #                 fout.write(f'{json.dump(u_key)}, {u_val}\n')
 
-        unigrams = Counter(ngrams(words, 1))
-        bigrams = Counter(ngrams(words, 2))
+    # for i in n:
+    all_words = []
+    for twt in monthly_tweets['tweets']:
+        twt = re.sub(r'[^A-Za-z0-9]+', ' ', twt)
+        all_words.extend(tokenizer.tokenize(twt))
 
-        with open(f'../data/all_tweets_unigrams_{d_key}.csv', mode='w', encoding='utf8') as fout:
-            for u_key, u_val in sorted(unigrams.items(), key=lambda x: x[1], reverse=True):
-                fout.write(f'{u_key[0]}, {u_val}\n')
+    n_grams = Counter(ngrams(all_words, 2))
 
-        with open(f'../data/all_tweets_bigrams_{d_key}.csv', mode='w', encoding='utf8') as fout:
-            for u_key, u_val in sorted(bigrams.items(), key=lambda x: x[1], reverse=True):
-                fout.write(f'"{u_key[0]} {u_key[1]}", {u_val}\n')
+    with open(f'../data/{out_file_prefix}_{2}grams_overall.csv', mode='w', encoding='utf8') as fout:
+        for u_key, u_val in sorted(n_grams.items(), key=lambda x: x[1], reverse=True):
+            fout.write(f'{u_key[0]} {u_key[1]}, {u_val}\n')
 
 
 def tweet_tfidf():
@@ -608,7 +627,7 @@ def tweet_tfidf():
     df = pd.DataFrame(denselist, columns=feature_names, index=columns)
 
     for i_key in df.index:
-        pdf = df.loc[i_key, ]
+        pdf = df.loc[i_key,]
         pdf.sort_values(ascending=False, inplace=True)
         pdf.to_csv(f'../data/all_tweets_tfidf_{i_key}.csv')
 
@@ -640,6 +659,18 @@ def user_bio_graph_distilbert():
 
     plt.bar
 
+def user_tweet_avg_activity():
+    df = pd.read_csv('../data/all_tweet_metrics_sorted.csv', header=0)
+    user_tweet_count = df.groupby('author_id').count().id.to_dict()
+
+    df = pd.read_csv('../data/all_users_all_metrics.csv', header=0)
+    df.columns = [c.strip() for c in df.columns]
+    df.drop(labels=['pp_url', 'verified', 'protected', 'listed', 'tweets', 'followings', 'followers', 'location',
+                    'username'], axis=1, inplace=True)
+    df['month'] = df.created_at.map(lambda x: x[0:8].strip())
+    df['lgbt_tweets'] = df.id.map(lambda x: user_tweet_count[x] if x in user_tweet_count else 0)
+
+    df.groupby('month').agg({'lgbt_tweets': np.mean, 'month': np.size})
 
 def bar_chart():
     with open('..\\data\\users_bio_distilbert.csv', mode='r') as fin:

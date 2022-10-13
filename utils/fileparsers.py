@@ -375,14 +375,15 @@ def tweet_parser():
     #     hashtags[str.lower(tag)] = 1
     #
 
-    with open("../data/all_tweets.tsv", mode="r", encoding="utf8") as fin, open(
-            "../data/all_tweets_words_with_emoji.tsv", mode="w", encoding="utf8") as t_out, open(
-        "../data/all_tweets_hashtags.txt", mode="w", encoding="utf8") as h_out, open(
-        "../data/all_tweets_urls.txt", mode="w", encoding="utf8") as url_out:
+    with open("../data/all_tweets.tsv", mode="r", encoding="utf8") as fin,\
+            open("../data/all_tweets_words_with_emoji.tsv", mode="w", encoding="utf8") as t_out,\
+            open("../data/all_tweets_hashtags.txt", mode="w", encoding="utf8") as h_out,\
+            open("../data/all_tweets_urls.txt", mode="w", encoding="utf8") as url_out:
         empty_tweets = 0
         for line in tqdm(fin):
             try:
                 parts = line.strip().split("\t")
+
                 if len(parts) == 1:
                     empty_tweets += 1
                     continue
@@ -468,7 +469,7 @@ def tweet_distilbert_validation():
                     fout.write(f'{key}\t{val["text"]}\n')
 
 
-def tweets_fix_tsv_issues():
+def tweets_detect_tsv_issues():
     with open('../data/all_tweets.tsv', mode='r', encoding='utf8') as fin:
         lines = fin.readlines()
         issue_count = 0
@@ -488,26 +489,28 @@ def tweets_during_peaks():
             parts = line.strip().split(',')
             peak_months[parts[1]] = []
 
-    pbar = tqdm(total=8581628)
-    with open('../data/all_tweet_metrics.csv', mode='r', encoding='utf8') as fin:
+    with open('../data/all_tweet_metrics_sorted.csv', mode='r', encoding='utf8') as fin:
         count = 0
-        index = 0
-        for line in fin:
+        index = 1
+        for line in tqdm(fin):
+            if line.startswith('id'):
+                continue
+
             parts = line.strip().split(',')
             date_str = parts[-1]
-            year_month = date_str[1:8]
+            year_month = date_str[0:7]
 
             if year_month in peak_months:
                 peak_months[year_month].append(index)
                 count += 1
 
             index += 1
-            pbar.update(index)
 
     print(f'\nTotal Tweets selected: {count}')
 
-    with open('../data/all_tweets.tsv', mode='r', encoding='utf8') as fin, open(
-            '../data/all_tweets_during_peak.tsv', mode='w', encoding='utf8') as fout:
+    with open('../data/all_tweets_sorted.tsv', mode='r', encoding='utf8') as fin,\
+            open('../data/all_tweets_during_peak.tsv', mode='w', encoding='utf8') as fout:
+
         lines = fin.readlines()
         pbar = tqdm(total=count)
         count = 0
@@ -525,6 +528,72 @@ def tweets_during_peaks():
                     print(f'For line - {i}: {lines[i]}')
                     exit(i)
 
+
+def tweet_outliers():
+    positive_emotions = {
+        'surprise': 1,
+        'joy': 1,
+        'love': 1
+    }
+
+    df = pd.read_csv('../data/all_tweets_distilbert_sorted.csv',
+                     header=0,
+                     dtype={
+                         'id': 'string',
+                         'sadness': 'float',
+                         'joy': 'float',
+                         'love': 'float',
+                         'anger': 'float',
+                         'fear': 'float',
+                         'surprise': 'float',
+                         'verdict': 'string',
+                     })
+
+    print(df.info())
+    print(df.head())
+
+    q_sadness = 0#df.sadness.quantile(0.9)
+    q_joy = 0#df.joy.quantile(0.9)
+    q_love = 0#df.love.quantile(0.9)
+    q_anger = 0#df.anger.quantile(0.9)
+    q_fear = 0#df.fear.quantile(0.9)
+    q_surprise = 0#df.surprise.quantile(0.9)
+
+    # df.drop(columns=['sadness', 'joy', 'love', 'anger', 'fear', 'surprise'], inplace=True)
+    # df['is_positive'] = df.verdict.map(lambda x: True if x in positive_emotions else False)
+
+    ddf = df[(df.joy > q_joy) | (df.love > q_love) | (df.surprise > q_surprise)]
+    d_pos_ids = set(ddf.id.to_list())
+
+    ddf = df[(df.sadness > q_sadness) | (df.anger > q_anger) | (df.fear > q_fear)]
+    d_neg_ids = set(ddf.id.to_list())
+
+    df = pd.read_csv('../data/all_tweet_metrics_sorted.csv', header=0)
+    year_months = df.created_at.map(lambda x: x[0:7]).to_list()
+
+
+    with open('../data/all_tweets_neg_emo_outliers.tsv', mode='w', encoding='utf8') as fnout,\
+            open('../data/all_tweets_pos_emo_outliers.tsv', mode='w', encoding='utf8') as fpout,\
+            open('../data/all_tweets_sorted.tsv', mode='r', encoding='utf8') as fin:
+
+        index = 0
+        for line in fin:
+            if line.startswith('id'):
+                continue
+
+            parts = line.strip().split('\t')
+            id = parts[0]
+
+            # not sure if one tweet can be outlier for both positive and negative emotions.
+            # taking into both sets if they are
+
+            if id in d_neg_ids:
+                fnout.write(f'{parts[0]}\t{year_months[index]}\t{parts[1]}\n')
+
+            if id in d_pos_ids:
+                fpout.write(f'{parts[0]}\t{year_months[index]}\t{parts[1]}\n')
+
+            index += 1
 
 def user_activity():
     user_date = defaultdict(dict)
@@ -576,6 +645,52 @@ def user_activity():
                 print(f'{k}   {str(v)}   {line_no}')
 
 
+def sort_dataset():
+    filepath = '../data/all_tweets_distilbert.csv'
+    new_filepath = '../data/all_tweets_distilbert_sorted.csv'
+
+    # df = read_tsv(filepath, ['id', 'tweet'])
+    # df.id = df.id.astype('int64')
+    # separator = '\t'
+
+    df = pd.read_csv(
+        filepath,
+        # header=0,
+        header=None,
+        names=['id', 'sadness', 'joy', 'love', 'anger', 'fear', 'surprise', 'verdict']
+
+        # converters={
+        #     'id': lambda x: x[1:-1]
+        # }
+    )
+    separator = ','
+
+    print(df.info())
+    print(df.head())
+
+    df.id = df.id.astype('int64')
+
+    df.sort_values(by='id', inplace=True, kind='stable', ascending=True)
+
+    df.to_csv(new_filepath, sep=separator, index=False)
+
+
+def read_tsv(filepath, columns):
+    rows = []
+    with open(filepath, mode='r', encoding='utf8') as fin:
+        for line in fin:
+            parts = line.strip().split('\t')
+            parts[0] = parts[0].strip()[1:-1]
+            rows.append(parts)
+
+    df = pd.DataFrame(
+        rows,
+        dtype=str,
+        columns=columns,
+    )
+    return df
+
+
 def menu():
     options = [
         'Parse Counts Log',
@@ -591,8 +706,10 @@ def menu():
         'Tweet Parser',
         'Tweet DistilBert Validation',
         'User Activity',
-        'Tweets During Peaks Parsing',
+        'Tweets During Peaks',
         'Tweets Fix TSV Issues',
+        'Tweet Outliers',
+        'Sort Datasets'
     ]
     m = SelectionMenu(options, "File Parsing Options")
     m.show()
@@ -627,7 +744,11 @@ def menu():
     elif selection == 13:
         tweets_during_peaks()
     elif selection == 14:
-        tweets_fix_tsv_issues()
+        tweets_detect_tsv_issues()
+    elif selection == 15:
+        tweet_outliers()
+    elif selection == 16:
+        sort_dataset()
     else:
         exit(selection)
 

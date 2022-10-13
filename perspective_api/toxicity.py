@@ -6,8 +6,12 @@ import regex as re
 from googleapiclient import discovery
 from tqdm.auto import tqdm
 
-IN_FILE_PATH = '../data/user_bio_processed_for_perspective.tsv'
-OUT_FILE_PATH = '../data/users_bio_perspective.csv'
+# IN_FILE_PATH = '../data/user_bio_processed_for_perspective.tsv'
+# OUT_FILE_PATH = '../data/users_bio_perspective.csv'
+
+IN_FILE_PATH = '../data/tweets_neg_sample_perspective_api.tsv'
+OUT_FILE_PATH = '../data/tweets_neg_sample_perspective.csv'
+
 API_KEY = 'REDACTED'
 
 client = discovery.build(
@@ -45,7 +49,9 @@ def run():
     if not in_path.exists() or not in_path.is_file():
         raise Exception("Path error. File not found")
 
-    df = pd.read_csv(in_path, sep='\t', dtype={"ids": "string", "processed": "string"})
+    df = pd.read_csv(in_path, sep='\t', header=0,
+                     # dtype={"id": "string", "month": "string", "tweet": "string"}
+                     )
     df['TOXICITY'] = ''
     df['SEVERE_TOXICITY'] = ''
     df['IDENTITY_ATTACK'] = ''
@@ -56,7 +62,7 @@ def run():
     print(df.info())
 
     out_cols = df.columns.tolist()
-    out_cols.remove('processed')
+    out_cols.remove('tweet')
 
     out_path = Path(OUT_FILE_PATH)
     start_index = 0
@@ -73,12 +79,12 @@ def run():
             fout.write(f"{str(out_cols)[1:-1]}\n")
 
         for i in tqdm(range(start_index, len(df))):
-            bio = df.loc[i]['processed']
+            text = df.loc[i]['tweet']
 
             labeled = False
             while not labeled:
                 try:
-                    probs = get_perspective(bio)
+                    probs = get_perspective(text)
                     for label in probs['attributeScores']:
                         df.loc[i, label] = probs['attributeScores'][label]['summaryScore']['value']
 
