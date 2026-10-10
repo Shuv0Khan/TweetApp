@@ -12,3 +12,7 @@ utils/__pycache__/
 .env
 scraping/.env
 twitter_api_keys.yaml
+
+# Python bytecode
+__pycache__/
+*.pyc
