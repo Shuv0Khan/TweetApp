@@ -7,3 +7,8 @@ Scweet/__pycache__/
 tweepy_interface/__pycache__/
 twitterdev/__pycache__/
 utils/__pycache__/
+
+# Local secrets: never commit these (copy the *.example files instead)
+.env
+scraping/.env
+twitter_api_keys.yaml

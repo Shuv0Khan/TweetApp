@@ -1,9 +1,11 @@
 from datetime import date, timedelta
 from searchtweets import convert_utc_time
+from utils import env_config
 
-api_key = "REDACTED"
-secret_key = "REDACTED"
-bearer_token = "REDACTED"
+# Twitter API credentials come from the environment (see .env.example)
+api_key = env_config.get("TWITTER_API_KEY")
+secret_key = env_config.get("TWITTER_API_SECRET")
+bearer_token = env_config.get("TWITTER_BEARER_TOKEN")
 
 positive_hashtags = [
     "#ally", "#pride", "#lgbtq", "#lgbt", "#socialjustice", "#gay", "#queer", "#lesbian", "#pridemonth",

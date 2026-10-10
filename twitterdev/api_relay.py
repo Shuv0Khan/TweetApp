@@ -1,11 +1,12 @@
 import json
+import os
 import time
 
 import requests
 from flask import Flask
 
 headersDic = {
-    'Authorization': f'Bearer REDACTED',
+    'Authorization': f'Bearer {os.environ["TWITTER_BEARER_TOKEN"]}',
     'User-Agent': 'v2UserLookupPython'
 }
 

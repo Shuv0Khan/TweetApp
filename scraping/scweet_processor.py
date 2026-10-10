@@ -1,7 +1,6 @@
 from Scweet.user import get_user_information, get_users_followers, get_users_following
 
-# const.USERNAME=REDACTED
-# const.PASSWORD=REDACTED
+# Scweet login comes from scraping/.env (see scraping/.env.example)
 
 def read_users():
     return ['@Shuv0Khan']

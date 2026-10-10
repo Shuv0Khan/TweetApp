@@ -1,3 +1,4 @@
+import os
 import time
 import traceback
 from pathlib import Path
@@ -12,7 +13,8 @@ from tqdm.auto import tqdm
 IN_FILE_PATH = '../data/tweets_neg_sample_perspective_api.tsv'
 OUT_FILE_PATH = '../data/tweets_neg_sample_perspective.csv'
 
-API_KEY = 'REDACTED'
+# Google Perspective API key, read from the environment (see .env.example)
+API_KEY = os.environ['PERSPECTIVE_API_KEY']
 
 client = discovery.build(
     "commentanalyzer",

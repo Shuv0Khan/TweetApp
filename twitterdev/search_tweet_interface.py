@@ -14,8 +14,7 @@ class FullArchiveSearch:
         self.mongo = mongodb_processor.MongoDBProcessor(db_url=constants.mongodb_url, db_name=constants.mongodb_db_name)
         self.search_args = load_credentials("twitter_api_keys.yaml",
                                             yaml_key="search_tweets_v2",
-                                            env_overwrite=False)
-        print(f"search args = {self.search_args}")
+                                            env_overwrite=True)
 
     def do_get(self):
         start_time = date.fromisoformat("2006-04-01")

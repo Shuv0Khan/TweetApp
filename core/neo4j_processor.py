@@ -1,11 +1,14 @@
 from neo4j import GraphDatabase
 
+from utils import env_config
+
 
 class Neo4jProcessor:
-    def __init__(self, uri='bolt://localhost:7687', user='neo4j', pwd='REDACTED'):
-        self.__uri = uri
-        self.__user = user
-        self.__pwd = pwd
+    def __init__(self, uri=None, user=None, pwd=None):
+        # Connection settings default to NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD
+        self.__uri = uri or env_config.get('NEO4J_URI', 'bolt://localhost:7687')
+        self.__user = user or env_config.get('NEO4J_USER', 'neo4j')
+        self.__pwd = pwd or env_config.require('NEO4J_PASSWORD')
         self.__driver = None
         self.__session = None
         try:

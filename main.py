@@ -7,6 +7,7 @@ import traceback
 from twitterdev import api_processor
 from twitterdev import search_tweet_interface
 from utils import constants
+from utils import env_config
 from utils import dbparser
 
 
@@ -82,14 +83,17 @@ if __name__ == '__main__':
 
         # Send email
         port = 465  # For SSL
-        password = "REDACTED"
+        # Alert mailbox credentials come from the environment (see .env.example)
+        sender = env_config.require("ALERT_EMAIL_SENDER")
+        password = env_config.require("ALERT_EMAIL_PASSWORD")
+        recipient = env_config.require("ALERT_EMAIL_RECIPIENT")
 
         # Create a secure SSL context
         context = ssl.create_default_context()
 
         with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-            server.login("tweetapp71@gmail.com", password)
+            server.login(sender, password)
             message = f"Subject: Collection Shutdown - {time.ctime()} \n\nShutdown with exception - {e}"
-            server.sendmail("tweetapp71@gmail.com", "naweemshuvo@gmail.com", message)
+            server.sendmail(sender, recipient, message)
         # exit
         exit(1)

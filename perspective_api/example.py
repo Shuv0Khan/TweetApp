@@ -1,7 +1,9 @@
+import os
 from googleapiclient import discovery
 import json
 
-API_KEY = 'REDACTED'
+# Google Perspective API key, read from the environment (see .env.example)
+API_KEY = os.environ['PERSPECTIVE_API_KEY']
 
 client = discovery.build(
     "commentanalyzer",
